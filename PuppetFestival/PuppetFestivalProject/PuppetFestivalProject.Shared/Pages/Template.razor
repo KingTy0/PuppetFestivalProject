@@ -1,0 +1,51 @@
+@page "/template"
+@using PuppetFestivalProject.Shared.Data
+@inject TemplateServices TemplateServices
+
+<h3>Template (@templates.Count(t => !t.IsComplete))</h3>
+
+<ul>
+    @foreach (var template in templates)
+    {
+        <li>
+            <input type="checkbox" @bind="template.IsComplete" />
+            <input @bind="template.Title" />
+        </li>
+    }
+</ul>
+
+<input placeholder="New template" @bind="newTemplate" />
+<button @onclick="AddTemplate">Add Template</button>
+<button @onclick="Save">Save</button>
+
+@code {
+    List<TemplateItem> templates = new List<TemplateItem>();
+    string newTemplate = string.Empty;
+
+    protected override void OnInitialized()
+    {
+        // Load items from safe in-memory service
+        templates.AddRange(TemplateServices.LoadItems());
+    }
+
+    void AddTemplate()
+    {
+        if (string.IsNullOrWhiteSpace(newTemplate))
+            return;
+
+        templates.Add(new TemplateItem { Title = newTemplate });
+        newTemplate = string.Empty;
+    }
+
+    void Save()
+    {
+        TemplateServices.SaveItems(templates);
+    }
+}
+@code
+{
+    
+//this is a template class based on the todo class from the BLazor hybird 
+//most classes should have this base set up and it a mix of C# and html when using @something it is C#
+//outside of that it is html 
+}
