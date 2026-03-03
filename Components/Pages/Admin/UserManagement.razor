@@ -1,0 +1,367 @@
+@* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   File: Components/Pages/Admin/UserManagement.razor
+
+   PURPOSE: Admin-only page for creating users, assigning roles,
+   and deleting users. Only users with the "Admin" role can access it.
+
+   KEY CONCEPTS:
+   • @attribute [Authorize(Roles = "Admin")]  →  Role-based access control.
+     Non-admin users get an "access denied" response, not the page content.
+   • @rendermode InteractiveServer  →  Enables interactive features
+     (button clicks, form bindings) via a real-time SignalR connection.
+     Without this, the page is static HTML with no interactivity.
+   • @inject  →  Requests a service from dependency injection (DI).
+     Similar to constructor injection in regular C# classes.
+   • @bind  →  Two-way data binding between an HTML input and a C# variable.
+     When the user types in the input, the variable updates automatically.
+   • @onclick  →  Binds a button click to a C# method.
+
+   ⚠️ IMPORTANT: DbContext SCOPING IN BLAZOR SERVER
+   In Blazor Server (@rendermode InteractiveServer), scoped services like
+   UserManager and its underlying DbContext live for the ENTIRE lifetime
+   of the SignalR circuit (i.e., as long as the browser tab is open).
+   This causes two problems:
+     1. DbContext is NOT thread-safe. If the admin clicks two buttons
+        quickly, two async operations hit the same DbContext simultaneously,
+        causing InvalidOperationException.
+     2. The long-lived DbContext accumulates tracked entities and never
+        refreshes, serving stale data if another admin modifies users.
+
+   SOLUTION: Instead of injecting UserManager directly, we inject
+   IServiceProvider and create a fresh DI scope inside each method.
+   Each scope gets its own short-lived UserManager + DbContext that
+   is disposed when the method completes. This is the Microsoft-
+   recommended pattern for database access in interactive Blazor components.
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ *@
+
+@page "/admin/users"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
+@using PuppetFestAPP.Web.Data
+@attribute [Authorize(Roles = "Admin")]
+@rendermode InteractiveServer
+
+@* ── Inject IServiceProvider instead of UserManager/RoleManager ──
+   We use this to create short-lived DI scopes inside each method.
+   See the @code block for the scoping pattern. *@
+@inject IServiceProvider ServiceProvider
+
+<PageTitle>User Management</PageTitle>
+
+<h1>User Management</h1>
+
+@* ── Status message banner ──
+   Shows success/error messages after user actions.
+   The CSS class (alert-success, alert-danger, etc.) is set dynamically. *@
+@if (!string.IsNullOrEmpty(statusMessage))
+{
+    <div class="alert @statusCssClass alert-dismissible fade show" role="alert">
+        @statusMessage
+        <button type="button" class="btn-close" @onclick="() => statusMessage = string.Empty">
+        </button>
+    </div>
+}
+
+
+@* ── Create New User Form ── *@
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Create New User</h5>
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label">Email</label>
+                @* @bind creates two-way binding: typing updates
+                   newUserEmail, and newUserEmail changes update the input *@
+                <input type="email" class="form-control" @bind="newUserEmail" placeholder="user@example.com" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Password</label>
+                <input type="password" class="form-control" @bind="newUserPassword"
+                       placeholder="Min 6 chars, 1 upper, 1 digit" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Role</label>
+                <select class="form-select" @bind="newUserRole">
+
+                    @foreach (var role in AppRoles.AllRoles)
+                    {
+                        <option value="@role">@role</option>
+                    }
+
+                </select>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                @* @onclick binds this button to the CreateUser() method.
+                   When clicked, Blazor calls CreateUser() via SignalR. *@
+                <button class="btn btn-primary w-100" @onclick="CreateUser">
+                    Create User
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ── User List Table ── *@
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">All Users (@users.Count total)</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-striped mb-0">
+                <thead>
+                    <tr>
+                        <th>Email</th>
+                        <th>Roles</th>
+                        <th>Email Confirmed</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var user in users)
+                    {
+                        <tr>
+                            <td>@user.Email</td>
+                            <td>
+                                @* Show each role as a Bootstrap badge *@
+
+                                @foreach (var role in user.Roles)
+                                {
+                                    <span class="badge bg-secondary me-1">
+                                        @role
+                                    </span>
+                                }
+
+                            </td>
+                            <td>
+
+                                @if (user.EmailConfirmed)
+                                {
+                                    <span class="text-success">✓ Yes</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">No</span>
+                                }
+
+                            </td>
+                            <td>
+                                @* Role assignment: dropdown + "Add" button *@
+                                <select class="form-select form-select-sm
+                                    d-inline-block w-auto me-2" @bind="user.SelectedNewRole">
+
+                                    @foreach (var role in AppRoles.AllRoles)
+                                    {
+                                        <option value="@role">@role</option>
+                                    }
+
+                                </select>
+                                <button class="btn btn-sm
+                                    btn-outline-primary me-1" @onclick="() => AddRoleToUser(user)">
+                                    + Role
+                                </button>
+
+                                @* Delete button: disabled for the seed admin
+                                   to prevent locking yourself out *@
+                                <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteUser(user)"
+                                        disabled="@(user.Email ==
+                                                                                                                                                                                                                                                                                                                                      "admin@puppetfest.local")">
+                                    Delete
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@code {
+    // ── Component State ──
+    // These private fields hold the page's data. Blazor automatically
+    // re-renders the page whenever a state change is detected (e.g.,
+    // after an @onclick handler finishes).
+    private List<UserViewModel> users = new();
+    private string newUserEmail = "";
+    private string newUserPassword = "";
+    private string newUserRole = AppRoles.Customer;
+    private string statusMessage = "";
+    private string statusCssClass = "";
+
+    /// <summary>
+    /// Called automatically by Blazor when the component first loads.
+    /// Populates the user list from the database.
+    /// </summary>
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUsers();
+    }
+
+    /// <summary>
+    /// Fetches all users from the database and builds the view model list.
+    /// Creates a fresh DI scope so the UserManager and its underlying
+    /// DbContext are short-lived and disposed after the query completes.
+    /// </summary>
+    private async Task LoadUsers()
+    {
+        users.Clear();
+
+        // ── Create a fresh DI scope ──
+        // "using var" ensures the scope (and its DbContext) is disposed
+        // when this method exits. This prevents stale entity tracking
+        // and avoids DbContext thread-safety issues.
+        using var scope = ServiceProvider.CreateScope();
+        var userManager = scope.ServiceProvider
+            .GetRequiredService<UserManager<ApplicationUser>>();
+
+        // UserManager.Users returns an IQueryable<ApplicationUser>.
+        // .ToList() executes the SQL query and loads all users into memory.
+        foreach (var user in userManager.Users.ToList())
+        {
+            // GetRolesAsync queries the AspNetUserRoles join table
+            // for this specific user and returns their role names.
+            var roles = await userManager.GetRolesAsync(user);
+
+            users.Add(new UserViewModel
+            {
+                Id = user.Id,
+                Email = user.Email ?? "",
+                Roles = roles.ToList(),
+                EmailConfirmed = user.EmailConfirmed,
+                SelectedNewRole = AppRoles.Customer
+            });
+        }
+    }
+
+    /// <summary>
+    /// Creates a new user account with the specified email, password,
+    /// and initial role. Called when the admin clicks "Create User".
+    /// Uses its own DI scope for a fresh DbContext.
+    /// </summary>
+    private async Task CreateUser()
+    {
+        if (string.IsNullOrWhiteSpace(newUserEmail) ||
+            string.IsNullOrWhiteSpace(newUserPassword))
+        {
+            statusMessage = "Email and password are required.";
+            statusCssClass = "alert-warning";
+            return;
+        }
+
+        // ── Fresh scope for this operation ──
+        using var scope = ServiceProvider.CreateScope();
+        var userManager = scope.ServiceProvider
+            .GetRequiredService<UserManager<ApplicationUser>>();
+
+        var user = new ApplicationUser
+        {
+            UserName = newUserEmail,
+            Email = newUserEmail,
+            EmailConfirmed = true // Admin-created users skip email verification
+        };
+
+        // CreateAsync validates the password against the configured rules
+        // (length, uppercase, digit, etc.) and hashes it before saving.
+        var result = await userManager.CreateAsync(user, newUserPassword);
+
+        if (result.Succeeded)
+        {
+            await userManager.AddToRoleAsync(user, newUserRole);
+            statusMessage = $"User {newUserEmail} created " +
+                            $"with role {newUserRole}.";
+            statusCssClass = "alert-success";
+            newUserEmail = "";
+            newUserPassword = "";
+            await LoadUsers(); // Refresh the displayed list
+        }
+        else
+        {
+            // Identity provides specific error messages like
+            // "Passwords must have at least one uppercase letter"
+            statusMessage = "Error: " + string.Join(", ",
+                result.Errors.Select(e => e.Description));
+            statusCssClass = "alert-danger";
+        }
+    }
+
+    /// <summary>
+    /// Adds an additional role to an existing user.
+    /// Users can have multiple roles simultaneously.
+    /// Uses its own DI scope for a fresh DbContext.
+    /// </summary>
+    private async Task AddRoleToUser(UserViewModel userVm)
+    {
+        // ── Fresh scope for this operation ──
+        using var scope = ServiceProvider.CreateScope();
+        var userManager = scope.ServiceProvider
+            .GetRequiredService<UserManager<ApplicationUser>>();
+
+        var user = await userManager.FindByIdAsync(userVm.Id);
+        if (user == null) return;
+
+        // Check if they already have this role to avoid duplicates
+        if (!await userManager.IsInRoleAsync(user, userVm.SelectedNewRole))
+        {
+            await userManager.AddToRoleAsync(user, userVm.SelectedNewRole);
+            statusMessage = $"Added role {userVm.SelectedNewRole} " +
+                            $"to {user.Email}.";
+            statusCssClass = "alert-success";
+            await LoadUsers();
+        }
+        else
+        {
+            statusMessage = $"{user.Email} already has role " +
+                            $"{userVm.SelectedNewRole}.";
+            statusCssClass = "alert-info";
+        }
+    }
+
+    /// <summary>
+    /// Permanently deletes a user account. The admin@puppetfest.local
+    /// account is protected from deletion by the disabled button in the UI.
+    /// Uses its own DI scope for a fresh DbContext.
+    /// </summary>
+    private async Task DeleteUser(UserViewModel userVm)
+    {
+        // ── Fresh scope for this operation ──
+        using var scope = ServiceProvider.CreateScope();
+        var userManager = scope.ServiceProvider
+            .GetRequiredService<UserManager<ApplicationUser>>();
+
+        var user = await userManager.FindByIdAsync(userVm.Id);
+        if (user == null) return;
+
+        var result = await userManager.DeleteAsync(user);
+        if (result.Succeeded)
+        {
+            statusMessage = $"User {userVm.Email} deleted.";
+            statusCssClass = "alert-success";
+            await LoadUsers();
+        }
+        else
+        {
+            statusMessage = "Error deleting user: " +
+                string.Join(", ",
+                    result.Errors.Select(e => e.Description));
+            statusCssClass = "alert-danger";
+        }
+    }
+
+    /// <summary>
+    /// View model for displaying a user in the table. We use a separate
+    /// view model (instead of ApplicationUser directly) because we need
+    /// to include the roles list and a UI-only field (SelectedNewRole)
+    /// that don't belong on the database entity.
+    /// </summary>
+    private class UserViewModel
+    {
+        public string Id { get; set; } = "";
+        public string Email { get; set; } = "";
+        public List<string> Roles { get; set; } = new();
+        public bool EmailConfirmed { get; set; }
+        public string SelectedNewRole { get; set; } = AppRoles.Customer;
+    }
+}
