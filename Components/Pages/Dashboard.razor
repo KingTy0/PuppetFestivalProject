@@ -1,0 +1,58 @@
+@* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   File: Components/Pages/Dashboard.razor
+
+   PURPOSE: Post-login landing page. Shows the current user's
+   name and which roles they belong to. This page requires
+   authentication — unauthenticated users are redirected to login.
+
+   KEY CONCEPTS:
+   • @page "/dashboard"  →  Maps this component to the URL /dashboard
+   • @attribute [Authorize]  →  Requires login; redirects if not authenticated
+   • [CascadingParameter] HttpContext  →  Gives access to the current user
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ *@
+
+   @page "/dashboard"
+@using Microsoft.AspNetCore.Authorization
+@using  PuppetFestAPP.Web.Data;
+
+@attribute [Authorize]
+
+@* ── Page title appears in the browser tab ── *@
+<PageTitle>Dashboard - Puppet Fest Merch</PageTitle>
+
+@* ── Greeting: shows the logged-in user's email/username ── *@
+<h1>Hello, @context.User.Identity?.Name!</h1>
+
+<p>Welcome to the Puppet Festival Merchandise Management System.</p>
+
+@* ── Role display: iterates all defined roles and shows which
+     ones the current user belongs to ── *@
+<div class="card mt-4">
+    <div class="card-body">
+        <h5 class="card-title">Your Roles</h5>
+        <ul>
+            @foreach (var role in AppRoles.AllRoles)
+            {
+                @if (context.User.IsInRole(role))
+                {
+                    <li><strong>@role</strong></li>
+                }
+            }
+        </ul>
+    </div>
+</div>
+
+@code {
+    // ── HttpContext cascading parameter ──
+    // In Blazor, a "cascading parameter" is a value passed down from a
+    // parent component (in this case, the App/Router). HttpContext contains
+    // the current HTTP request, including the authenticated user's identity.
+    //
+    // ⚠️ IMPORTANT: HttpContext is ONLY available in static server-side
+    // rendering (SSR) mode — the default when no @rendermode directive is set.
+    // If you later add @rendermode InteractiveServer to this page (e.g., to
+    // make buttons interactive), HttpContext will be NULL and this page will
+    // crash. For interactive pages, use AuthenticationStateProvider instead.
+    [CascadingParameter]
+    private HttpContext context { get; set; } = default!;
+}

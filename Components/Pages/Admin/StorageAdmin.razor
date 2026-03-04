@@ -1,0 +1,178 @@
+@page "/admin/storage"
+@using Microsoft.AspNetCore.Authorization
+@using PuppetFestAPP.Web.Services
+
+@attribute [Authorize(Roles = "Admin")]
+@rendermode InteractiveServer
+
+@* ── Inject the services we need ── *@
+@inject SqliteBackupService BackupService
+@inject BackupQueueService BackupQueue
+@inject IConfiguration Configuration
+
+<PageTitle>Storage Admin</PageTitle>
+
+<h1>Storage Administration</h1>
+
+@* ── Backup status card ── *@
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Backup Status</h5>
+    </div>
+    <div class="card-body">
+        @if (BackupService.IsEnabled)
+        {
+            <p class="text-success">
+                <strong>✓ Blob Storage backup is ENABLED</strong>
+            </p>
+            <p>
+                Automatic backups run every
+                @(Configuration.GetValue<int>(
+                    "Backup:IntervalMinutes", 5)) minutes.
+                Write-triggered backups also fire after each
+                database change.
+            </p>
+        }
+        else
+        {
+            <div class="alert alert-warning">
+                <strong>Blob Storage backup is DISABLED.</strong><br />
+                Set <code>Backup:UseStorage</code> to <code>true</code>
+                and provide a <code>Backup:BlobConnectionString</code>
+                in configuration to enable.
+            </div>
+        }
+    </div>
+</div>
+
+@* ── Manual backup card ── *@
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Manual Backup</h5>
+    </div>
+    <div class="card-body">
+        <button class="btn btn-primary"
+                @onclick="RunBackup"
+                disabled="@(!BackupService.IsEnabled || isRunning)">
+            @if (isRunning)
+            {
+                @* Bootstrap spinner shown during async operation *@
+                <span class="spinner-border spinner-border-sm me-2">
+                </span>
+                <text>Backing up...</text>
+            }
+            else
+            {
+                <text>Backup Now</text>
+            }
+        </button>
+
+        @if (!string.IsNullOrEmpty(resultMessage))
+        {
+            <div class="alert @resultCssClass mt-3">
+                @resultMessage
+            </div>
+        }
+    </div>
+</div>
+
+@* ── Restore card ── *@
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">Restore from Latest Backup</h5>
+    </div>
+    <div class="card-body">
+        <div class="alert alert-danger">
+            <strong>Caution:</strong> This will overwrite the current
+            database with the most recent backup. All active user
+            sessions will be disrupted. An application restart is
+            recommended after restoring.
+        </div>
+        <button class="btn btn-warning"
+                @onclick="RunRestore"
+                disabled="@(!BackupService.IsEnabled || isRestoring)">
+            @if (isRestoring)
+            {
+                <span class="spinner-border spinner-border-sm me-2">
+                </span>
+                <text>Restoring...</text>
+            }
+            else
+            {
+                <text>Restore Latest Backup</text>
+            }
+        </button>
+    </div>
+</div>
+
+@code {
+    // ── Component state ──
+    private bool isRunning;      // True while a backup is in progress
+    private bool isRestoring;    // True while a restore is in progress
+    private string resultMessage = "";
+    private string resultCssClass = "";
+
+    /// <summary>
+    /// Triggers a backup through the queue and waits for completion.
+    /// Uses RunBackupAndWaitAsync (not EnqueueBackup) so the UI
+    /// spinner stays active until the backup actually finishes.
+    /// </summary>
+    private async Task RunBackup()
+    {
+        isRunning = true;
+        resultMessage = "";
+        try
+        {
+            var blobName = await BackupQueue.RunBackupAndWaitAsync();
+            if (blobName != null)
+            {
+                resultMessage =
+                    $"Backup successful! Saved as: {blobName}";
+                resultCssClass = "alert-success";
+            }
+            else
+            {
+                resultMessage =
+                    "Backup skipped — another backup is already running.";
+                resultCssClass = "alert-info";
+            }
+        }
+        catch (Exception ex)
+        {
+            resultMessage = $"Backup failed: {ex.Message}";
+            resultCssClass = "alert-danger";
+        }
+        finally
+        {
+            isRunning = false;
+        }
+    }
+
+    /// <summary>
+    /// Downloads the most recent backup blob and overwrites the local
+    /// database. This is a destructive operation — active sessions will
+    /// see errors until the app is restarted.
+    /// </summary>
+    private async Task RunRestore()
+    {
+        isRestoring = true;
+        resultMessage = "";
+        try
+        {
+            var blobName = await BackupService.RestoreLatestAsync();
+            resultMessage = $"Restore successful from: {blobName}. " +
+                "Please restart the application for changes to " +
+                "take full effect.";
+            resultCssClass = "alert-success";
+        }
+        catch (Exception ex)
+        {
+            resultMessage = $"Restore failed: {ex.Message}";
+            resultCssClass = "alert-danger";
+        }
+        finally
+        {
+            isRestoring = false;
+        }
+    }
+}

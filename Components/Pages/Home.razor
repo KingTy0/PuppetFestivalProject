@@ -1,0 +1,30 @@
+﻿@page "/"
+
+<PageTitle>Puppet Fest Merch</PageTitle>
+
+<AuthorizeView>
+    @* ── Content for logged-in users ── *@
+    <Authorized>
+        <h1>Welcome back, @context.User.Identity?.Name!</h1>
+        <p>You are logged in.
+            <a href="/dashboard">Go to Dashboard →</a>
+        </p>
+    </Authorized>
+
+    @* ── Content for anonymous visitors ── *@
+    <NotAuthorized>
+        <h1>Puppet Festival Merchandise</h1>
+        <p class="lead">
+            Welcome to the Chicago Puppet Festival merchandise
+            management system.
+        </p>
+        <p>
+            @* These links point to the Identity pages that were
+               auto-generated in Components/Account/Pages/ *@
+            <a href="Account/Login"
+               class="btn btn-primary btn-lg me-2">Login</a>
+            <a href="Account/Register"
+               class="btn btn-outline-secondary btn-lg">Register</a>
+        </p>
+    </NotAuthorized>
+</AuthorizeView>
