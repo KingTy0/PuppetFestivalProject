@@ -62,6 +62,7 @@ builder.Services.AddHostedService<TimedBackupService>();
 
 
 
+builder.Services.AddScoped<ProductService>();
 
 
 

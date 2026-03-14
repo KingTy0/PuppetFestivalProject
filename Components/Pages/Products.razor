@@ -1,0 +1,42 @@
+@page "/products"
+
+@inject PuppetFestAPP.Web.Services.ProductService ProductService
+@using PuppetFestAPP.Web.Data
+
+
+
+<h3>Festival Products</h3>
+
+@if (products == null)
+{
+    <p><em>Loading products...</em></p>
+}
+else if (products.Count == 0)
+{
+    <p>No products found.</p>
+}
+else
+{
+    <div class="product-grid">
+        @foreach (var product in products)
+        {
+            <div class="product-card">
+                <img src="@($"images/{product.Image?.FileName}")"
+                     alt="@product.Image?.AltText" width="150" />
+                <h5>@product.Name</h5>
+                <!-- <p>@product.Description</p> -->
+                <p>Price: $@product.Price</p>
+                <p><strong>@product.Category?.Name</strong></p>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private List<Product>? products;
+
+    protected override async Task OnInitializedAsync()
+    {
+        products = await ProductService.GetAllAsync();
+    }
+}
