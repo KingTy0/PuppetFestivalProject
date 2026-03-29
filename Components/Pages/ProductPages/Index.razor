@@ -1,0 +1,83 @@
+@page "/products"
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using PuppetFestAPP.Web.Data
+@using Image = PuppetFestAPP.Web.Models.Image
+@using PuppetFestAPP.Web.Models
+@rendermode InteractiveServer
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+
+<PageTitle>Product Management</PageTitle>
+
+<h1>Product Management</h1>
+
+<p>
+    <a href="products/create" class="btn btn-primary">Create New Master Product</a>
+</p>
+
+@* Search Bar *@
+<div class="mb-3 mt-3">
+    <input type="search" class="form-control" placeholder="Search by product name..." 
+           @bind="searchTerm" @bind:event="oninput" />
+</div>
+
+<QuickGrid Items="FilteredProducts" Pagination="pagination">
+    @* Image Column *@
+   <TemplateColumn Title="Image" Context="prod">
+    @* We use 'prod' (lowercase) because the grid defined it as the 'Context' *@
+    @if (prod.Image != null && !string.IsNullOrEmpty(prod.Image.FileName))
+    {
+        <img src="/Images/products/@prod.Image.FileName" 
+     style="width: 50px; height: 50px; object-fit: cover;" 
+     class="rounded shadow-sm" />
+    }
+    else
+    {
+        <span>No Image</span>
+    }
+</TemplateColumn>
+
+    <PropertyColumn Property="@(p => p.Name)" Sortable="true" Title="Product Name" />
+    
+    <TemplateColumn Title="Category" Sortable="true" Context="prod">
+        @prod.Category?.Name
+    </TemplateColumn>
+
+    <PropertyColumn Property="@(p => p.Price)" Format="C" Sortable="true" />
+    
+    <TemplateColumn Context="prod" Title="Actions">
+        <div class="btn-group">
+            <a href="@($"/products/edit/{prod.Id}")" class="btn btn-sm btn-outline-primary">Edit</a>
+            <a href="@($"/products/details/{prod.Id}")" class="btn btn-sm btn-info text-white">Manage Inventory</a>
+            <a href="@($"/products/delete/{prod.Id}")" class="btn btn-sm btn-danger">Delete</a>
+        </div>
+    </TemplateColumn>
+</QuickGrid>
+
+<Paginator State="pagination" />
+
+@code {
+    private IQueryable<Product>? products;
+    private string searchTerm = "";
+
+    private IQueryable<Product> FilteredProducts =>
+        string.IsNullOrWhiteSpace(searchTerm)
+            ? products ?? Enumerable.Empty<Product>().AsQueryable()
+            : (products ?? Enumerable.Empty<Product>().AsQueryable())
+                .Where(p => p.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
+
+    PaginationState pagination = new PaginationState { ItemsPerPage = 20 };
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = await DbFactory.CreateDbContextAsync();
+
+        var data = await context.Products
+            .Include(p => p.Category)
+            .Include(p => p.Image) 
+            .Where(p => p.ParentProductId == null)
+            .ToListAsync();
+
+        products = data.AsQueryable();
+    }
+}

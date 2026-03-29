@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace PuppetFestAPP.Web.Migrations
 {
     /// <inheritdoc />
-    public partial class CreateMerchandiseSchema : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -203,16 +203,17 @@ namespace PuppetFestAPP.Web.Migrations
                 {
                     Id = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
+                    ParentProductId = table.Column<int>(type: "INTEGER", nullable: true),
                     Name = table.Column<string>(type: "TEXT", maxLength: 100, nullable: false),
                     Description = table.Column<string>(type: "TEXT", maxLength: 500, nullable: true),
-                    Quantity = table.Column<int>(type: "INTEGER", nullable: false),
                     Price = table.Column<decimal>(type: "decimal(10,2)", precision: 10, scale: 2, nullable: false),
-                    DateAdded = table.Column<DateTime>(type: "TEXT", nullable: false),
                     Size = table.Column<int>(type: "INTEGER", nullable: true),
                     Color = table.Column<int>(type: "INTEGER", nullable: true),
+                    Material = table.Column<string>(type: "TEXT", maxLength: 100, nullable: true),
                     IsActive = table.Column<bool>(type: "INTEGER", nullable: false, defaultValue: true),
-                    CategoryId = table.Column<int>(type: "INTEGER", nullable: false),
-                    ImageId = table.Column<int>(type: "INTEGER", nullable: false)
+                    DateAdded = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    ImageId = table.Column<int>(type: "INTEGER", nullable: true),
+                    CategoryId = table.Column<int>(type: "INTEGER", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -227,8 +228,12 @@ namespace PuppetFestAPP.Web.Migrations
                         name: "FK_Products_Images_ImageId",
                         column: x => x.ImageId,
                         principalTable: "Images",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_Products_Products_ParentProductId",
+                        column: x => x.ParentProductId,
+                        principalTable: "Products",
+                        principalColumn: "Id");
                 });
 
             migrationBuilder.CreateTable(
@@ -238,7 +243,9 @@ namespace PuppetFestAPP.Web.Migrations
                     Id = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
                     ProductId = table.Column<int>(type: "INTEGER", nullable: false),
-                    LocationId = table.Column<int>(type: "INTEGER", nullable: false)
+                    Quantity = table.Column<int>(type: "INTEGER", nullable: false),
+                    LocationId = table.Column<int>(type: "INTEGER", nullable: false),
+                    LastUpdated = table.Column<DateTime>(type: "TEXT", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -314,6 +321,11 @@ namespace PuppetFestAPP.Web.Migrations
                 table: "Products",
                 column: "ImageId",
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Products_ParentProductId",
+                table: "Products",
+                column: "ParentProductId");
         }
 
         /// <inheritdoc />

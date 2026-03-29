@@ -1,0 +1,154 @@
+@page "/products/edit/{id:int}"
+@using Microsoft.EntityFrameworkCore
+@using PuppetFestAPP.Web.Data
+@using PuppetFestAPP.Web.Models
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject NavigationManager NavigationManager
+
+<PageTitle>Edit Product</PageTitle>
+
+<div class="container">
+    <h1>Edit Product</h1>
+    <hr />
+
+    @if (Form is null)
+    {
+        <div class="alert alert-info">Loading product data...</div>
+    }
+    else
+    {
+        <EditForm method="post" Model="Form" OnValidSubmit="UpdateProduct" FormName="editProduct">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-danger" />
+
+            <div class="mb-3">
+                <label class="form-label">Name:</label>
+                <InputText @bind-Value="Form.Name" class="form-control" />
+                <ValidationMessage For="() => Form.Name" class="text-danger" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Price:</label>
+                <InputNumber @bind-Value="Form.Price" class="form-control" />
+                <ValidationMessage For="() => Form.Price" class="text-danger" />
+            </div>
+
+            @* --- SIZE DROPDOWN --- *@
+            <div class="mb-3">
+                <label class="form-label">Size:</label>
+                <InputSelect @bind-Value="Form.Size" class="form-control">
+                    <option value="">-- Select Size --</option>
+                    @foreach (var size in Enum.GetValues<ProductSize>())
+                    {
+                        <option value="@size">@size</option>
+                    }
+                </InputSelect>
+            </div>
+
+            @* --- COLOR DROPDOWN --- *@
+            <div class="mb-3">
+                <label class="form-label">Color:</label>
+                <InputSelect @bind-Value="Form.Color" class="form-control">
+                    <option value="">-- Select Color --</option>
+                    @foreach (var color in Enum.GetValues<ProductColor>())
+                    {
+                        <option value="@color">@color</option>
+                    }
+                </InputSelect>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Category:</label>
+                <InputSelect @bind-Value="Form.CategoryId" class="form-control">
+                    @foreach (var cat in Categories)
+                    {
+                        <option value="@cat.Id">@cat.Name</option>
+                    }
+                </InputSelect>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Description:</label>
+                <InputTextArea @bind-Value="Form.Description" class="form-control" rows="3" />
+            </div>
+
+            <div class="mt-4">
+                <button type="submit" class="btn btn-success">Save Changes</button>
+                <a href="/products" class="btn btn-secondary">Cancel</a>
+            </div>
+        </EditForm>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    [SupplyParameterFromForm]
+    private ProductFormModel? Form { get; set; }
+
+    private List<Category> Categories = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = await DbFactory.CreateDbContextAsync();
+        Categories = await context.Categories.ToListAsync();
+
+        if (Form is null)
+        {
+            var product = await context.Products.FindAsync(Id);
+            
+            if (product is null)
+            {
+                NavigationManager.NavigateTo("/products");
+                return;
+            }
+
+            Form = new ProductFormModel
+            {
+                Name = product.Name,
+                Price = product.Price,
+                CategoryId = product.CategoryId,
+                Description = product.Description,
+                ParentProductId = product.ParentProductId,
+                Size = product.Size,
+                Color = product.Color
+            };
+        }
+    }
+
+    private async Task UpdateProduct()
+    {
+        using var context = await DbFactory.CreateDbContextAsync();
+        var product = await context.Products.FindAsync(Id);
+
+        if (product is not null && Form is not null)
+        {
+            product.Name = Form.Name;
+            product.Price = Form.Price;
+            product.CategoryId = Form.CategoryId;
+            product.Description = Form.Description ?? "";
+            product.Size = Form.Size;
+            product.Color = Form.Color;
+
+            try
+            {
+                await context.SaveChangesAsync();
+            
+                if (product.ParentProductId.HasValue)
+                {
+                    NavigationManager.NavigateTo($"/products/details/{product.ParentProductId}");
+                }
+                else
+                {
+                    NavigationManager.NavigateTo("/products");
+                }
+            }
+            // This 'when' clause is the magic filter
+            catch (Exception ex) when (ex is not Microsoft.AspNetCore.Components.NavigationException)
+            {
+                Console.WriteLine($"Actual error updating product: {ex.Message}");
+            }
+        }
+    }
+}

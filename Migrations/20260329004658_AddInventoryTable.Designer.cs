@@ -11,8 +11,8 @@ using PuppetFestAPP.Web.Data;
 namespace PuppetFestAPP.Web.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260311191555_CreateMerchandiseSchema")]
-    partial class CreateMerchandiseSchema
+    [Migration("20260329004658_AddInventoryTable")]
+    partial class AddInventoryTable
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -228,24 +228,30 @@ namespace PuppetFestAPP.Web.Migrations
                     b.ToTable("Categories");
                 });
 
-            modelBuilder.Entity("PuppetFestAPP.Web.Data.Image", b =>
+            modelBuilder.Entity("PuppetFestAPP.Web.Data.Inventory", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("AltText")
-                        .HasMaxLength(100)
+                    b.Property<DateTime>("LastUpdated")
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("FileName")
-                        .IsRequired()
+                    b.Property<string>("Location")
                         .HasMaxLength(50)
                         .HasColumnType("TEXT");
 
+                    b.Property<int>("ProductId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("INTEGER");
+
                     b.HasKey("Id");
 
-                    b.ToTable("Images");
+                    b.HasIndex("ProductId");
+
+                    b.ToTable("Inventories");
                 });
 
             modelBuilder.Entity("PuppetFestAPP.Web.Data.Location", b =>
@@ -288,7 +294,7 @@ namespace PuppetFestAPP.Web.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("ImageId")
+                    b.Property<int?>("ImageId")
                         .HasColumnType("INTEGER");
 
                     b.Property<bool>("IsActive")
@@ -296,17 +302,21 @@ namespace PuppetFestAPP.Web.Migrations
                         .HasColumnType("INTEGER")
                         .HasDefaultValue(true);
 
+                    b.Property<string>("Material")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("TEXT");
 
+                    b.Property<int?>("ParentProductId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<decimal>("Price")
                         .HasPrecision(10, 2)
                         .HasColumnType("decimal(10,2)");
-
-                    b.Property<int>("Quantity")
-                        .HasColumnType("INTEGER");
 
                     b.Property<int?>("Size")
                         .HasColumnType("INTEGER");
@@ -315,8 +325,9 @@ namespace PuppetFestAPP.Web.Migrations
 
                     b.HasIndex("CategoryId");
 
-                    b.HasIndex("ImageId")
-                        .IsUnique();
+                    b.HasIndex("ImageId");
+
+                    b.HasIndex("ParentProductId");
 
                     b.ToTable("Products");
                 });
@@ -327,10 +338,16 @@ namespace PuppetFestAPP.Web.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<DateTime>("LastUpdated")
+                        .HasColumnType("TEXT");
+
                     b.Property<int>("LocationId")
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("ProductId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Quantity")
                         .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
@@ -340,6 +357,27 @@ namespace PuppetFestAPP.Web.Migrations
                     b.HasIndex("ProductId");
 
                     b.ToTable("ProductLocations");
+                });
+
+            modelBuilder.Entity("PuppetFestAPP.Web.Models.Image", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("AltText")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("UploadDate")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Images");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -393,6 +431,17 @@ namespace PuppetFestAPP.Web.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("PuppetFestAPP.Web.Data.Inventory", b =>
+                {
+                    b.HasOne("PuppetFestAPP.Web.Data.Product", "Product")
+                        .WithMany("Inventories")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+                });
+
             modelBuilder.Entity("PuppetFestAPP.Web.Data.Product", b =>
                 {
                     b.HasOne("PuppetFestAPP.Web.Data.Category", "Category")
@@ -401,15 +450,19 @@ namespace PuppetFestAPP.Web.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("PuppetFestAPP.Web.Data.Image", "Image")
-                        .WithOne("Product")
-                        .HasForeignKey("PuppetFestAPP.Web.Data.Product", "ImageId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                    b.HasOne("PuppetFestAPP.Web.Models.Image", "Image")
+                        .WithMany("Products")
+                        .HasForeignKey("ImageId");
+
+                    b.HasOne("PuppetFestAPP.Web.Data.Product", "ParentProduct")
+                        .WithMany("Variants")
+                        .HasForeignKey("ParentProductId");
 
                     b.Navigation("Category");
 
                     b.Navigation("Image");
+
+                    b.Navigation("ParentProduct");
                 });
 
             modelBuilder.Entity("PuppetFestAPP.Web.Data.ProductLocation", b =>
@@ -436,12 +489,6 @@ namespace PuppetFestAPP.Web.Migrations
                     b.Navigation("Products");
                 });
 
-            modelBuilder.Entity("PuppetFestAPP.Web.Data.Image", b =>
-                {
-                    b.Navigation("Product")
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("PuppetFestAPP.Web.Data.Location", b =>
                 {
                     b.Navigation("ProductLocations");
@@ -449,7 +496,16 @@ namespace PuppetFestAPP.Web.Migrations
 
             modelBuilder.Entity("PuppetFestAPP.Web.Data.Product", b =>
                 {
+                    b.Navigation("Inventories");
+
                     b.Navigation("ProductLocations");
+
+                    b.Navigation("Variants");
+                });
+
+            modelBuilder.Entity("PuppetFestAPP.Web.Models.Image", b =>
+                {
+                    b.Navigation("Products");
                 });
 #pragma warning restore 612, 618
         }

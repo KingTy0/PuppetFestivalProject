@@ -1,0 +1,121 @@
+@page "/products/details/{Id:int}"
+@using Microsoft.EntityFrameworkCore
+@using PuppetFestAPP.Web.Data
+@inject IDbContextFactory<PuppetFestAPP.Web.Data.ApplicationDbContext> DbFactory
+@inject NavigationManager NavigationManager
+
+<PageTitle>Product Details & Inventory</PageTitle>
+
+<div class="container mt-4">
+    <h1>Details</h1>
+
+    @if (Product is null)
+    {
+        <div class="alert alert-warning">Loading product details...</div>
+    }
+    else
+    {
+        <div class="row">
+            <div class="col-md-8">
+                <h2>Product Master Record</h2>
+                <hr />
+                <dl class="row">
+                    <dt class="col-sm-4">Name</dt>
+                    <dd class="col-sm-8">@Product.Name</dd>
+
+                    <dt class="col-sm-4">Category</dt>
+                    <dd class="col-sm-8">@Product.Category?.Name</dd>
+
+                    <dt class="col-sm-4">Base Price</dt>
+                    <dd class="col-sm-8">@Product.Price.ToString("C")</dd>
+
+                    <dt class="col-sm-4">Status</dt>
+                    <dd class="col-sm-8">
+                        <span class="badge @(Product.IsActive ? "bg-success" : "bg-secondary")">
+                            @(Product.IsActive ? "Active" : "Inactive")
+                        </span>
+                    </dd>
+                </dl>
+            </div>
+            
+            @* Master Product Image Display *@
+            <div class="col-md-4 text-center">
+                @if (!string.IsNullOrEmpty(Product.Image?.FileName))
+                {
+                    <img src="/images/products/@Product.Image.FileName" class="img-fluid rounded shadow" style="max-height: 250px;" />
+                }
+                else
+                {
+                    <div class="p-5 border rounded bg-light text-muted">No Image</div>
+                }
+            </div>
+        </div>
+
+        <hr />
+        <div class="d-flex justify-content-between align-items-center">
+            <h3>Inventory Variants (Sizes/Colors)</h3>
+            <a href="@($"/products/create?parentId={Product.Id}")" class="btn btn-success btn-sm">+ Add New Variant</a>
+        </div>
+
+        @if (Variants != null && Variants.Any())
+        {
+            <table class="table table-hover mt-3 align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Size</th>
+                        <th>Color</th>
+                        <th>Price</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var v in Variants)
+                    {
+                        <tr>
+                            <td>@(v.Size == ProductSize.NA || v.Size == null ? "—" : v.Size.ToString())</td>
+                            <td>@(v.Color == ProductColor.NA || v.Color == null ? "—" : v.Color.ToString())</td>
+                            <td>@v.Price.ToString("C")</td>
+                            <td>
+                                <a href="@($"/products/edit/{v.Id}")" class="btn btn-sm btn-outline-primary">Edit</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        else
+        {
+            <div class="alert alert-info mt-3">Standalone product. No variations added yet.</div>
+        }
+
+        <div class="mt-4">
+            <a href="@($"/products/edit/{Product.Id}")" class="btn btn-primary">Edit Master</a> |
+            <a href="/products">Back to List</a>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public int Id { get; set; }
+    private Product? Product { get; set; }
+    private List<Product> Variants { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = await DbFactory.CreateDbContextAsync();
+
+        // Added .Include(p => p.Image)
+        Product = await context.Products
+            .Include(p => p.Category)
+            .Include(p => p.Image) 
+            .FirstOrDefaultAsync(m => m.Id == Id);
+
+        if (Product is not null)
+        {
+            Variants = await context.Products
+                .Where(p => p.ParentProductId == Id)
+                .OrderBy(p => p.Size)
+                .ToListAsync();
+        }
+    }
+}

@@ -9,10 +9,12 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 
     public DbSet<Product> Products { get; set; }
     public DbSet<Category> Categories { get; set; }
-    public DbSet<Image> Images { get; set; }
+   // Use the full path here to be 100% sure
+    public DbSet<PuppetFestAPP.Web.Models.Image> Images { get; set; }
     public DbSet<Location> Locations { get; set; }
     public DbSet<ProductLocation> ProductLocations { get; set; }
-
+    
+    public DbSet<Inventory> Inventories { get; set; }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

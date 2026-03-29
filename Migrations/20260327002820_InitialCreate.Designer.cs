@@ -11,8 +11,8 @@ using PuppetFestAPP.Web.Data;
 namespace PuppetFestAPP.Web.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260311191655_InitialIdentitySchema")]
-    partial class InitialIdentitySchema
+    [Migration("20260327002820_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -288,7 +288,7 @@ namespace PuppetFestAPP.Web.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("ImageId")
+                    b.Property<int?>("ImageId")
                         .HasColumnType("INTEGER");
 
                     b.Property<bool>("IsActive")
@@ -296,17 +296,21 @@ namespace PuppetFestAPP.Web.Migrations
                         .HasColumnType("INTEGER")
                         .HasDefaultValue(true);
 
+                    b.Property<string>("Material")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("TEXT");
 
+                    b.Property<int?>("ParentProductId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<decimal>("Price")
                         .HasPrecision(10, 2)
                         .HasColumnType("decimal(10,2)");
-
-                    b.Property<int>("Quantity")
-                        .HasColumnType("INTEGER");
 
                     b.Property<int?>("Size")
                         .HasColumnType("INTEGER");
@@ -318,6 +322,8 @@ namespace PuppetFestAPP.Web.Migrations
                     b.HasIndex("ImageId")
                         .IsUnique();
 
+                    b.HasIndex("ParentProductId");
+
                     b.ToTable("Products");
                 });
 
@@ -327,10 +333,16 @@ namespace PuppetFestAPP.Web.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<DateTime>("LastUpdated")
+                        .HasColumnType("TEXT");
+
                     b.Property<int>("LocationId")
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("ProductId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Quantity")
                         .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
@@ -403,13 +415,17 @@ namespace PuppetFestAPP.Web.Migrations
 
                     b.HasOne("PuppetFestAPP.Web.Data.Image", "Image")
                         .WithOne("Product")
-                        .HasForeignKey("PuppetFestAPP.Web.Data.Product", "ImageId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("PuppetFestAPP.Web.Data.Product", "ImageId");
+
+                    b.HasOne("PuppetFestAPP.Web.Data.Product", "ParentProduct")
+                        .WithMany("Variants")
+                        .HasForeignKey("ParentProductId");
 
                     b.Navigation("Category");
 
                     b.Navigation("Image");
+
+                    b.Navigation("ParentProduct");
                 });
 
             modelBuilder.Entity("PuppetFestAPP.Web.Data.ProductLocation", b =>
@@ -450,6 +466,8 @@ namespace PuppetFestAPP.Web.Migrations
             modelBuilder.Entity("PuppetFestAPP.Web.Data.Product", b =>
                 {
                     b.Navigation("ProductLocations");
+
+                    b.Navigation("Variants");
                 });
 #pragma warning restore 612, 618
         }

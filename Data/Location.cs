@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.AspNetCore.Mvc.ModelBinding.Validation; // Make sure this is here!
 
 namespace PuppetFestAPP.Web.Data;
 
@@ -15,7 +16,8 @@ public class Location
     [MaxLength(100)]
     public string Address { get; set; } = string.Empty;
 
-    // Navigation property
-
-    public ICollection<ProductLocation> ProductLocations { get; set; } = null!;
+    // --- Navigation property ---
+    // We only need this once! 
+    [ValidateNever] 
+    public ICollection<ProductLocation> ProductLocations { get; set; } = new List<ProductLocation>();
 }
