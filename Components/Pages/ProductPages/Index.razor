@@ -4,6 +4,8 @@
 @using PuppetFestAPP.Web.Data
 @using Image = PuppetFestAPP.Web.Models.Image
 @using PuppetFestAPP.Web.Models
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
 @rendermode InteractiveServer
 @inject IDbContextFactory<ApplicationDbContext> DbFactory
 
@@ -11,9 +13,11 @@
 
 <h1>Product Management</h1>
 
-<p>
-    <a href="products/create" class="btn btn-primary">Create New Master Product</a>
-</p>
+<AuthorizeView Roles"@($"{AppRoles.Admin},{AppRoles.InventoryManager})">
+    <p>
+        <a href="products/create" class="btn btn-primary">Create New Master Product</a>
+    </p>
+</AuthorizeView>
 
 @* Search Bar *@
 <div class="mb-3 mt-3">
@@ -47,9 +51,19 @@
     
     <TemplateColumn Context="prod" Title="Actions">
         <div class="btn-group">
-            <a href="@($"/products/edit/{prod.Id}")" class="btn btn-sm btn-outline-primary">Edit</a>
+            <AuthorizeView Roles="@($"{AppRoles.Admin},{AppRoles.InventoryManager}")">
+                <Authorized>
+                    <a href="@($"/products/edit/{prod.Id}")" class="btn btn-sm btn-outline-primary">Edit</a>
+                </Authorized>
+            </AuthorizeView>
+
             <a href="@($"/products/details/{prod.Id}")" class="btn btn-sm btn-info text-white">Manage Inventory</a>
-            <a href="@($"/products/delete/{prod.Id}")" class="btn btn-sm btn-danger">Delete</a>
+
+            <AuthorizeView Roles="@($"{AppRoles.Admin},{AppRoles.InventoryManager}")">
+                <Authorized>
+                    <a href="@($"/products/delete/{prod.Id}")" class="btn btn-sm btn-danger">Delete</a>
+                </Authorized>
+            </AuthorizeView>
         </div>
     </TemplateColumn>
 </QuickGrid>

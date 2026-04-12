@@ -2,6 +2,8 @@
 @using Microsoft.EntityFrameworkCore
 @using PuppetFestAPP.Web.Data
 @using PuppetFestAPP.Web.Models
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = AppRoles.Admin + "," + AppRoles.InventoryManager)]
 @inject IDbContextFactory<ApplicationDbContext> DbFactory
 @inject NavigationManager NavigationManager
 @inject IWebHostEnvironment Environment

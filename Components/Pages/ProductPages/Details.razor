@@ -1,6 +1,8 @@
 @page "/products/details/{Id:int}"
 @using Microsoft.EntityFrameworkCore
 @using PuppetFestAPP.Web.Data
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
 @inject IDbContextFactory<PuppetFestAPP.Web.Data.ApplicationDbContext> DbFactory
 @inject NavigationManager NavigationManager
 
@@ -55,7 +57,11 @@
         <hr />
         <div class="d-flex justify-content-between align-items-center">
             <h3>Inventory Variants (Sizes/Colors)</h3>
-            <a href="@($"/products/create?parentId={Product.Id}")" class="btn btn-success btn-sm">+ Add New Variant</a>
+            <AuthorizeView Roles="@($"{AppRoles.Admin},{AppRoles.InventoryManager}")">
+                <Authorized>
+                    <a href="@($"/products/create?parentId={Product.Id}")" class="btn btn-success btn-sm">+ Add New Variant</a>
+                </Authorized>
+            </AuthorizeView>
         </div>
 
         @if (Variants != null && Variants.Any())
@@ -79,12 +85,16 @@
                             <td class="text-center">
                                 @* Both buttons live inside this single <td> *@
                                 <div class="btn-group" role="group">
-                                    <a href="@($"/products/edit/{v.Id}")" class="btn btn-sm btn-outline-primary">
-                                        Edit
-                                    </a>
-                                    <a href="@($"/products/delete/{v.Id}")" class="btn btn-sm btn-outline-danger">
-                                        Delete
-                                    </a>
+                                    <AuthorizeView Roles="@($"{AppRoles.Admin},{AppRoles.InventoryManager}")">
+                                        <Authorized>
+                                            <a href="@($"/products/edit/{v.Id}")" class="btn btn-sm btn-outline-primary">
+                                                Edit
+                                            </a>
+                                            <a href="@($"/products/delete/{v.Id}")" class="btn btn-sm btn-outline-danger">
+                                                Delete
+                                            </a>
+                                        </Authorized>
+                                    </AuthorizeView>
                                 </div>
                             </td>
                         </tr>
@@ -98,7 +108,12 @@
         }
 
         <div class="mt-4">
-            <a href="@($"/products/edit/{Product.Id}")" class="btn btn-primary">Edit Master</a> |
+            <AuthorizeView Roles="@($"{AppRoles.Admin},{AppRoles.InventoryManager}")">
+                <Authorized>
+                    <a href="@($"/products/edit/{Product.Id}")" class="btn btn-primary">Edit Master</a>
+                    <span>|</span>
+                </Authorized>
+            </AuthorizeView>
             <a href="/products">Back to List</a>
         </div>
     }
