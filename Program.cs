@@ -5,7 +5,6 @@ using PuppetFestAPP.Web.Components;
 using PuppetFestAPP.Web.Components.Account;
 using PuppetFestAPP.Web.Data;
 using PuppetFestAPP.Web.Services;
-using Microsoft.AspNetCore.Components.QuickGrid;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -46,8 +45,7 @@ builder.Services.AddIdentityCore<ApplicationUser>(options => options.SignIn.Requ
     .AddSignInManager()
     .AddDefaultTokenProviders();
 
-builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
-
+builder.Services.AddSingleton<IEmailSender<ApplicationUser>, BrevoEmailSender>();
 
 // ── Backup Services ──
 // SqliteBackupService: Scoped — one instance per DI scope (request).
