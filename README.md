@@ -4,6 +4,17 @@ The Puppet Festival Project (Backstage) is an open-source inventory management w
 
 This project was collaboratively built by students at Columbia College Chicago using modern web technologies, including .NET 9.0, Blazor Web Applications, MudBlazor, C#, and HTML/CSS.
 
+## Technical Highlights
+* Full-stack web application built with Blazor (.NET 9.0) using a component-based architecture
+* Entity Framework Core integration for database design, migrations, and data access
+* Robust CRUD operations across products, inventory, and logistics workflows
+* Dynamic UI built with MudBlazor for responsive and consistent design
+* Inventory tracking system with support for product cataloging, location management, and delivery tracking
+* Role-based admin features, including account management and authentication
+* Seed data generation and import functionality for rapid environment setup
+* Azure deployment for cloud hosting and scalability
+* Collaborative Git workflow with branch management and merge conflict resolution
+
 ## Programming Contributors and Responsibilities
 * Asha (he/him)
   * Designed database tables and data architecture
