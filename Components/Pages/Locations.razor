@@ -1,0 +1,65 @@
+@page "/locations"
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using PuppetFestAPP.Web.Data
+@using System.Linq
+@rendermode InteractiveServer
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+
+<PageTitle>Locations</PageTitle>
+
+<h1>Locations Management</h1>
+
+<p>
+    <a href="/locations/create" class="btn btn-primary">Create New Location</a>
+</p>
+
+@if (locations == null)
+{
+    <div class="alert alert-info">Loading...</div>
+}
+else
+{
+    <div class="mb-3">
+        <input type="search" class="form-control" placeholder="Search by name..." 
+               @bind="searchTerm" @bind:event="oninput" />
+    </div>
+
+    <QuickGrid Items="@((IQueryable<Location>)FilteredLocations.AsQueryable())" TGridItem="Location" Pagination="pagination">
+        <PropertyColumn Property="@(l => l.Name)" Sortable="true" Title="Name" />
+        <PropertyColumn Property="@(l => l.Address)" Sortable="true" Title="Address" />
+        <TemplateColumn Title="Type" Context="loc">
+            <span class="badge @(loc.Type == LocationType.Van ? "bg-warning text-dark" : "bg-info")">
+                @loc.Type
+            </span>
+        </TemplateColumn>
+        <PropertyColumn Property="@(l => l.IsActive)" Title="Active" />
+        <TemplateColumn Context="loc" Title="Actions">
+            <div class="btn-group">
+                <a href="@($"/locations/edit/{loc.Id}")" class="btn btn-sm btn-outline-primary">Edit</a>
+                <a href="@($"/locations/delete/{loc.Id}")" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete?')">Delete</a>
+            </div>
+        </TemplateColumn>
+    </QuickGrid>
+
+    <Paginator State="pagination" />
+}
+
+@code {
+    private List<Location>? locations;
+    private string searchTerm = "";
+
+    private IEnumerable<Location> FilteredLocations =>
+        string.IsNullOrWhiteSpace(searchTerm)
+            ? locations ?? Enumerable.Empty<Location>()
+            : (locations ?? Enumerable.Empty<Location>())
+                .Where(l => l.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
+
+    PaginationState pagination = new() { ItemsPerPage = 20 };
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = await DbFactory.CreateDbContextAsync();
+        locations = await context.Locations.ToListAsync();
+    }
+}

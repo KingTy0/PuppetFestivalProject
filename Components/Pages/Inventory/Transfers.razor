@@ -1,0 +1,62 @@
+@page "/inventory/transfers"
+@using Microsoft.EntityFrameworkCore
+@using PuppetFestAPP.Web.Data
+@using System.Linq
+@rendermode InteractiveServer
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+
+<PageTitle>Transfer History</PageTitle>
+
+<h1>Transfer Boxes</h1>
+<a href="/inventory/transfer/create" class="btn btn-primary mb-3">+ New Transfer</a>
+
+@if (TransferBoxes?.Any() == true)
+{
+    <QuickGrid Items="@((IQueryable<StockTransferBox>)TransferBoxes.AsQueryable())" TGridItem="StockTransferBox" Pagination="pagination">
+        <TemplateColumn Title="Date" Context="box">
+            @box.CreatedAt.ToString("MMM dd, yyyy")
+        </TemplateColumn>
+        <TemplateColumn Title="From → To" Context="box">
+            <span class="badge bg-secondary">@box.FromLocation.Name</span>
+            <i class="bi bi-arrow-right ms-1"></i>
+            <span class="badge bg-primary">@box.ToLocation.Name</span>
+        </TemplateColumn>
+        <PropertyColumn Property="@(x => x.Items.Count)" Title="# Items" />
+        <TemplateColumn Title="Items" Context="box">
+            @{
+                var itemPreview = string.Join(", ", box.Items.Take(3).Select(i => $"{i.Product.Name} x{i.Quantity}"));
+            }
+            @itemPreview
+            @if (box.Items.Count > 3)
+            {
+                <small>+@(box.Items.Count - 3) more</small>
+            }
+        </TemplateColumn>
+        <TemplateColumn Title="Actions" Context="box">
+            <a href="/inventory/transfer/details/@box.Id" class="btn btn-sm btn-outline-primary">View</a>
+        </TemplateColumn>
+    </QuickGrid>
+    <Paginator State="pagination" />
+}
+else
+{
+    <div class="alert alert-info">
+        No transfers yet. <a href="/inventory/transfer/create">Create one</a>
+    </div>
+}
+
+@code {
+    private List<StockTransferBox> TransferBoxes = new();
+    PaginationState pagination = new() { ItemsPerPage = 20 };
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = await DbFactory.CreateDbContextAsync();
+        TransferBoxes = await context.StockTransferBoxes
+            .Include(b => b.FromLocation)
+            .Include(b => b.ToLocation)
+            .Include(b => b.Items).ThenInclude(i => i.Product)
+            .OrderByDescending(b => b.CreatedAt)
+            .ToListAsync();
+    }
+}

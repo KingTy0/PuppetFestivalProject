@@ -1,0 +1,219 @@
+@page "/inventory/transfer/details/{Id:int}"
+@using Microsoft.EntityFrameworkCore
+@using PuppetFestAPP.Web.Data
+@rendermode InteractiveServer
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject NavigationManager Navigation
+
+<PageTitle>Transfer Details</PageTitle>
+
+@if (TransferBox == null)
+{
+    <div class="alert alert-warning">Loading...</div>
+}
+else
+{
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1>Transfer #@TransferBox.Id</h1>
+                @if (TransferBox.IsDelivered)
+                {
+                    <span class="badge bg-success">Status: Delivered</span>
+                }
+                else
+                {
+                    <span class="badge bg-warning text-dark">Status: In Progress (In Transit)</span>
+                }
+            </div>
+            <div>
+                @if (!TransferBox.IsDelivered)
+                {
+                    <a href="/inventory/transfer/edit/@Id" class="btn btn-warning">Edit Details</a>
+                    <button class="btn btn-danger ms-2" @onclick="DeleteBox">
+                        <i class="bi bi-trash"></i> Cancel & Refund Stock
+                    </button>
+                }
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <h6 class="text-muted">FROM</h6>
+                        <h4>@TransferBox.FromLocation.Name</h4>
+                        <span class="badge bg-secondary fs-6">@TransferBox.FromLocation.Type</span>
+                        <p class="text-muted small">@TransferBox.FromLocation.Address</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 text-center my-auto">
+                <i class="bi bi-arrow-right-circle-fill display-1 @(TransferBox.IsDelivered ? "text-success" : "text-primary")"></i>
+                <p class="text-muted small">Created: @TransferBox.CreatedAt.ToString("MMM dd, yyyy HH:mm")</p>
+            </div>
+            <div class="col-md-4">
+                <div class="card border-primary">
+                    <div class="card-body text-center">
+                        <h6 class="text-muted">TO</h6>
+                        <h4>@TransferBox.ToLocation.Name</h4>
+                        <span class="badge bg-primary fs-6">@TransferBox.ToLocation.Type</span>
+                        <p class="text-muted small">@TransferBox.ToLocation.Address</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @if (!TransferBox.IsDelivered)
+        {
+            <div class="alert alert-info d-flex justify-content-between align-items-center">
+                <span><strong>Awaiting Delivery:</strong> Once this box arrives at @TransferBox.ToLocation.Name, click confirm to add the items to their stock.</span>
+                <button class="btn btn-success btn-lg" @onclick="ConfirmDelivery">Confirm Delivery</button>
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(TransferBox.Notes))
+        {
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Notes</h5>
+                </div>
+                <div class="card-body">
+                    <p>@TransferBox.Notes</p>
+                </div>
+            </div>
+        }
+
+        <h3>Items In Box (@TransferBox.Items.Count)</h3>
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Product</th>
+                        <th>Size/Color</th>
+                        <th>Quantity</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in TransferBox.Items.OrderBy(i => i.Product.Name))
+                    {
+                        <tr>
+                            <td>@item.Product.Name</td>
+                            <td>
+                                @(item.Product.Size != ProductSize.NA ? item.Product.Size.ToString() : "-")
+                                @if (item.Product.Color != ProductColor.NA)
+                                {
+                                    <span class="badge bg-secondary ms-1">@item.Product.Color</span>
+                                }
+                            </td>
+                            <td><span class="badge bg-info text-dark">@item.Quantity</span></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="mt-4">
+            <a href="/inventory/transfers" class="btn btn-secondary">← Back to Transfers</a>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+    private StockTransferBox? TransferBox;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTransferBox();
+    }
+
+    private async Task LoadTransferBox()
+    {
+        using var context = await DbFactory.CreateDbContextAsync();
+        TransferBox = await context.StockTransferBoxes
+            .Include(b => b.FromLocation)
+            .Include(b => b.ToLocation)
+            .Include(b => b.Items).ThenInclude(i => i.Product)
+            .FirstOrDefaultAsync(b => b.Id == Id);
+
+        if (TransferBox == null)
+        {
+            Navigation.NavigateTo("/inventory/transfers");
+        }
+    }
+
+    private async Task ConfirmDelivery()
+    {
+        using var context = await DbFactory.CreateDbContextAsync();
+        var box = await context.StockTransferBoxes
+            .Include(b => b.Items)
+            .FirstOrDefaultAsync(b => b.Id == Id);
+
+        if (box == null || box.IsDelivered) return;
+
+        foreach (var item in box.Items) 
+        {
+            var toStock = await context.ProductLocations
+                .FirstOrDefaultAsync(pl => pl.LocationId == box.ToLocationId && pl.ProductId == item.ProductId);
+            
+            if (toStock == null) 
+            {
+                context.ProductLocations.Add(new ProductLocation 
+                { 
+                    LocationId = box.ToLocationId, 
+                    ProductId = item.ProductId, 
+                    Quantity = item.Quantity,
+                    LastUpdated = DateTime.UtcNow
+                });
+            } 
+            else 
+            {
+                toStock.Quantity += item.Quantity;
+                toStock.LastUpdated = DateTime.UtcNow;
+            }
+        }
+
+        box.IsDelivered = true;
+        await context.SaveChangesAsync();
+        await LoadTransferBox(); // Refresh data to update the UI
+    }
+
+    private async Task DeleteBox()
+    {
+        if (TransferBox == null || TransferBox.IsDelivered) return;
+
+        using var context = await DbFactory.CreateDbContextAsync();
+        var box = await context.StockTransferBoxes
+            .Include(b => b.Items)
+            .FirstOrDefaultAsync(b => b.Id == Id);
+
+        if (box != null)
+        {
+            foreach (var item in box.Items)
+            {
+                var sourceStock = await context.ProductLocations
+                    .FirstOrDefaultAsync(pl => pl.LocationId == box.FromLocationId && pl.ProductId == item.ProductId);
+
+                if (sourceStock != null)
+                {
+                    sourceStock.Quantity += item.Quantity;
+                }
+                else
+                {
+                    context.ProductLocations.Add(new ProductLocation 
+                    { 
+                        LocationId = box.FromLocationId, 
+                        ProductId = item.ProductId, 
+                        Quantity = item.Quantity,
+                        LastUpdated = DateTime.UtcNow
+                    });
+                }
+            }
+
+            context.StockTransferBoxes.Remove(box);
+            await context.SaveChangesAsync();
+            Navigation.NavigateTo("/inventory/transfers");
+        }
+    }
+}

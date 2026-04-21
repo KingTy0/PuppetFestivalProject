@@ -1,0 +1,68 @@
+@page "/inventory/stock"
+@using Microsoft.EntityFrameworkCore
+@using PuppetFestAPP.Web.Data
+@using System.Linq
+@rendermode InteractiveServer
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+
+<PageTitle>Stock by Location</PageTitle>
+
+<h1>Stock Levels</h1>
+@if (StockData?.Any() == true)
+{
+    @foreach (var locGroup in StockData.GroupBy(x => x.Location))
+    {
+        <div class="card mb-4">
+            @* The d-flex and justify-content-between push the button to the right *@
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h3 class="mb-0">
+                    @locGroup.Key.Name (@((LocationType)locGroup.Key.Type)!) - Total: @locGroup.Sum(x => x.Quantity) items
+                </h3>
+
+                @* locGroup.Key is the Location object, so we grab its ID for the link *@
+                <a href="/inventory/adjust/@locGroup.Key.Id" class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-pencil-square"></i> End of Day Adjustment
+                </a>
+            </div>
+
+            <div class="card-body p-0">
+                <QuickGrid Items="@((IQueryable<ProductLocation>)locGroup.AsQueryable())" TGridItem="ProductLocation">
+                    <TemplateColumn Title="Product" Context="item">
+                        @item.Product.Name
+                        @if (item.Product.Size != ProductSize.NA)
+                        {
+                            <text> (@item.Product.Size)</text>
+                        }
+                        @if (item.Product.Color != ProductColor.NA)
+                        {
+                            <text> /@item.Product.Color</text>
+                        }
+                    </TemplateColumn>
+                    <PropertyColumn Property="@(x => x.Quantity)" Title="Qty" />
+                </QuickGrid>
+            </div>
+        </div>
+    }
+}
+else
+{
+    <div class="alert alert-info">
+        No stock records yet. Create some transfers to populate inventory!
+    </div>
+}
+
+@code {
+    private List<ProductLocation> StockData = new();
+    
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = await DbFactory.CreateDbContextAsync();
+        StockData = await context.ProductLocations
+            .Include(pl => pl.Product)
+            .Include(pl => pl.Location)
+            .Where(pl => pl.Quantity > 0)
+            .OrderBy(pl => pl.Location.Name)
+            .ThenBy(pl => pl.Product.Name)
+            .ToListAsync();
+    }
+}

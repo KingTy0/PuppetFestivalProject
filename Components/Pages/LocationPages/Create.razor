@@ -1,0 +1,66 @@
+@page "/locations/create"
+@using PuppetFestAPP.Web.Data
+@using Microsoft.EntityFrameworkCore
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject NavigationManager Navigation
+
+<PageTitle>Create Location</PageTitle>
+
+<div class="container mt-4">
+    <h1>Create Location</h1>
+    <EditForm Model="Form" OnValidSubmit="CreateLocation" FormName="createLocation" Enhance>
+        <DataAnnotationsValidator />
+        <ValidationSummary class="text-danger" />
+
+        <div class="mb-3">
+            <label class="form-label">Name</label>
+            <InputText @bind-Value="Form.Name" class="form-control" />
+            <ValidationMessage For="() => Form.Name" />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Address</label>
+            <InputText @bind-Value="Form.Address" class="form-control" />
+            <ValidationMessage For="() => Form.Address" />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Type</label>
+            <InputSelect @bind-Value="Form.Type" class="form-control">
+                @foreach (var type in Enum.GetValues<LocationType>())
+                {
+                    <option value="@type">@type</option>
+                }
+            </InputSelect>
+        </div>
+
+        <div class="mt-4">
+            <button type="submit" class="btn btn-primary">Create</button>
+            <a href="/locations" class="btn btn-secondary">Cancel</a>
+        </div>
+    </EditForm>
+</div>
+
+@code {
+    [SupplyParameterFromForm] public LocationFormModel Form { get; set; } = new();
+
+    private async Task CreateLocation()
+    {
+        using var context = await DbFactory.CreateDbContextAsync();
+        context.Locations.Add(new Location 
+        { 
+            Name = Form.Name, 
+            Address = Form.Address, 
+            Type = Form.Type 
+        });
+        await context.SaveChangesAsync();
+        Navigation.NavigateTo("/locations");
+    }
+
+    public class LocationFormModel
+    {
+        public string Name { get; set; } = "";
+        public string Address { get; set; } = "";
+        public LocationType Type { get; set; } = LocationType.Store;
+    }
+}

@@ -9,17 +9,16 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 
     public DbSet<Product> Products { get; set; }
     public DbSet<Category> Categories { get; set; }
-   // Use the full path here to be 100% sure
     public DbSet<PuppetFestAPP.Web.Models.Image> Images { get; set; }
     public DbSet<Location> Locations { get; set; }
     public DbSet<ProductLocation> ProductLocations { get; set; }
+    public DbSet<StockTransferBox> StockTransferBoxes { get; set; }
+    public DbSet<StockTransferBoxItem> StockTransferBoxItems { get; set; }
     
     public DbSet<Inventory> Inventories { get; set; }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
-
-        // Configure enum conversions
 
         modelBuilder.Entity<Product>()
             .Property(p => p.Color)
@@ -29,16 +28,16 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             .Property(p => p.Size)
             .HasConversion<int>();
 
-        // Configure decimal precision
-
         modelBuilder.Entity<Product>()
             .Property(p => p.Price)
             .HasPrecision(10, 2);
 
-        // Configure default value for IsActive
-
         modelBuilder.Entity<Product>()
             .Property(p => p.IsActive)
             .HasDefaultValue(true);
+
+        modelBuilder.Entity<ProductLocation>()
+            .HasIndex(pl => new { pl.ProductId, pl.LocationId })
+            .IsUnique();
     }
 }

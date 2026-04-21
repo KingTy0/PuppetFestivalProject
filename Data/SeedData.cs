@@ -42,6 +42,8 @@ public static class SeedData
         var userManager = serviceProvider
             .GetRequiredService<UserManager<ApplicationUser>>();
 
+            
+
         // ── Step 1: Create all roles ──
         // Iterates through every role name in AppRoles.AllRoles and
         // creates it in the database if it doesn't already exist.
@@ -115,6 +117,38 @@ public static class SeedData
 
         using var scope = serviceProvider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+
+
+
+
+
+
+
+        // Seed 3 vans + warehouse
+        var vans = new[]
+        {
+            new Location { Name = "Van 1", Address = "Mobile - Chicago Festival Route", Type = LocationType.Van },
+            new Location { Name = "Van 2", Address = "Mobile - Chicago Festival Route", Type = LocationType.Van },
+            new Location { Name = "Van 3", Address = "Mobile - Chicago Festival Route", Type = LocationType.Van },
+            new Location { Name = "Warehouse", Address = "123 Storage St, Chicago IL", Type = LocationType.Warehouse }
+        };
+
+        foreach (var van in vans)
+        {
+            if (!context.Locations.Any(l => l.Name == van.Name))
+                context.Locations.Add(van);
+        }
+        await context.SaveChangesAsync();
+
+
+
+
+
+
+
+
+
 
         SeedProducts(context);
 
