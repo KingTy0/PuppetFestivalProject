@@ -17,3 +17,7 @@ this is an inventory management web app for the chicago international theatre pu
 * Logan (she/her)
 * * Display Seed Data
   * Sales page
+* Yunjong (he/him)
+* * View Dependancies
+* Mia (She/Her)
+* * Email Authentication
