@@ -4,8 +4,7 @@
 @using PuppetFestAPP.Web.Data
 @using Image = PuppetFestAPP.Web.Models.Image
 @using PuppetFestAPP.Web.Models
-@using Microsoft.AspNetCore.Authorization
-@attribute [Authorize]
+@attribute [Authorize(Policy = AppPolicies.CanViewProducts)]
 @rendermode InteractiveServer
 @inject IDbContextFactory<ApplicationDbContext> DbFactory
 
@@ -13,10 +12,12 @@
 
 <h1>Product Management</h1>
 
-<AuthorizeView Roles"@($"{AppRoles.Admin},{AppRoles.InventoryManager})">
-    <p>
-        <a href="products/create" class="btn btn-primary">Create New Master Product</a>
-    </p>
+<AuthorizeView Policy="@AppPolicies.CanEditProducts">
+    <Authorized>
+        <p>
+            <a href="products/create" class="btn btn-primary">Create New Master Product</a>
+        </p>
+    </Authorized>
 </AuthorizeView>
 
 @* Search Bar *@
@@ -27,19 +28,19 @@
 
 <QuickGrid Items="FilteredProducts" Pagination="pagination">
     @* Image Column *@
-   <TemplateColumn Title="Image" Context="prod">
-    @* We use 'prod' (lowercase) because the grid defined it as the 'Context' *@
-    @if (prod.Image != null && !string.IsNullOrEmpty(prod.Image.FileName))
-    {
-        <img src="/Images/products/@prod.Image.FileName" 
-     style="width: 50px; height: 50px; object-fit: cover;" 
-     class="rounded shadow-sm" />
-    }
-    else
-    {
-        <span>No Image</span>
-    }
-</TemplateColumn>
+    <TemplateColumn Title="Image" Context="prod">
+        @* We use 'prod' (lowercase) because the grid defined it as the 'Context' *@
+        @if (prod.Image != null && !string.IsNullOrEmpty(prod.Image.FileName))
+        {
+            <img src="/Images/products/@prod.Image.FileName" 
+                 style="width: 50px; height: 50px; object-fit: cover;" 
+                 class="rounded shadow-sm" />
+        }
+        else
+        {
+            <span>No Image</span>
+        }
+    </TemplateColumn>
 
     <PropertyColumn Property="@(p => p.Name)" Sortable="true" Title="Product Name" />
     
@@ -51,15 +52,13 @@
     
     <TemplateColumn Context="prod" Title="Actions">
         <div class="btn-group">
-            <AuthorizeView Roles="@($"{AppRoles.Admin},{AppRoles.InventoryManager}")">
+            <AuthorizeView Policy="@AppPolicies.CanEditProducts">
                 <Authorized>
                     <a href="@($"/products/edit/{prod.Id}")" class="btn btn-sm btn-outline-primary">Edit</a>
                 </Authorized>
             </AuthorizeView>
-
-            <a href="@($"/products/details/{prod.Id}")" class="btn btn-sm btn-info text-white">Manage Inventory</a>
-
-            <AuthorizeView Roles="@($"{AppRoles.Admin},{AppRoles.InventoryManager}")">
+            <a href="@($"/products/details/{prod.Id}")" class="btn btn-sm btn-info text-white">View Inventory</a>
+            <AuthorizeView Policy="@AppPolicies.CanEditProducts">
                 <Authorized>
                     <a href="@($"/products/delete/{prod.Id}")" class="btn btn-sm btn-danger">Delete</a>
                 </Authorized>

@@ -18,11 +18,31 @@ builder.Services.AddScoped<IdentityRedirectManager>();
 builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
 
 builder.Services.AddAuthentication(options =>
-    {
-        options.DefaultScheme = IdentityConstants.ApplicationScheme;
-        options.DefaultSignInScheme = IdentityConstants.ExternalScheme;
-    })
+{
+    options.DefaultScheme = IdentityConstants.ApplicationScheme;
+    options.DefaultSignInScheme = IdentityConstants.ExternalScheme;
+})
     .AddIdentityCookies();
+
+// Role-based authorization policies. These keep page access rules and
+// navigation visibility aligned with the Admin > SM > FOH > Driver hierarchy.
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy(AppPolicies.CanViewProducts, policy =>
+        policy.RequireRole(AppRoles.ViewProductRoles));
+
+    options.AddPolicy(AppPolicies.CanEditProducts, policy =>
+        policy.RequireRole(AppRoles.EditProductRoles));
+
+    options.AddPolicy(AppPolicies.CanEnterSales, policy =>
+        policy.RequireRole(AppRoles.SalesInputRoles));
+
+    options.AddPolicy(AppPolicies.CanManageDeliveryChecks, policy =>
+        policy.RequireRole(AppRoles.DeliveryCheckRoles));
+
+    options.AddPolicy(AppPolicies.CanManageUsers, policy =>
+        policy.RequireRole(AppRoles.UserManagementRoles));
+});
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 builder.Services.AddDbContextFactory<ApplicationDbContext>(options =>

@@ -5,7 +5,7 @@
    and deleting users. Only users with the "Admin" role can access it.
 
    KEY CONCEPTS:
-   • @attribute [Authorize(Roles = "Admin")]  →  Role-based access control.
+   • @attribute [Authorize(Policiy = AppPolicies.CanManageUsers)]  →  Role-based access control.
      Non-admin users get an "access denied" response, not the page content.
    • @rendermode InteractiveServer  →  Enables interactive features
      (button clicks, form bindings) via a real-time SignalR connection.
@@ -38,7 +38,7 @@
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Identity
 @using PuppetFestAPP.Web.Data
-@attribute [Authorize(Roles = "Admin")]
+@attribute [Authorize(Policy = AppPolicies.CanManageUsers)]
 @rendermode InteractiveServer
 
 @* ── Inject IServiceProvider instead of UserManager/RoleManager ──
@@ -187,7 +187,7 @@
     private List<UserViewModel> users = new();
     private string newUserEmail = "";
     private string newUserPassword = "";
-    private string newUserRole = AppRoles.SalesStaff; // default selection for the "Role" dropdown in the "Create New User"
+    private string newUserRole = AppRoles.Driver; // default selection for the "Role" dropdown in the "Create New User"
     private string statusMessage = "";
     private string statusCssClass = "";
 
@@ -362,6 +362,6 @@
         public string Email { get; set; } = "";
         public List<string> Roles { get; set; } = new();
         public bool EmailConfirmed { get; set; }
-        public string SelectedNewRole { get; set; } = AppRoles.SalesStaff;
+        public string SelectedNewRole { get; set; } = AppRoles.Driver;
     }
 }

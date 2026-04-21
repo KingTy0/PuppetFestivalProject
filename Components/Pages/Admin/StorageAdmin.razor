@@ -17,7 +17,7 @@
 @page "/admin/storage"
 @using Microsoft.AspNetCore.Authorization
 @using PuppetFestAPP.Web.Services
-@attribute [Authorize(Roles = "Admin")]
+@attribute [Authorize(Policy = AppPolicies.CanManageUsers)]
 @rendermode InteractiveServer
 
 @* ── Inject the services we need ── *@

@@ -1,0 +1,161 @@
+@page "/sales"
+@using Microsoft.EntityFrameworkCore
+@using PuppetFestAPP.Web.Data
+@attribute [Authorize(Policy = AppPolicies.CanEnterSales)]
+@rendermode InteractiveServer
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+
+<PageTitle>Sales Input</PageTitle>
+
+<h1>Sales Input</h1>
+
+<p class="text-muted">
+    Enter sold quantities here. Submitting a sale reduces the stock count for the selected product/location row.
+</p>
+
+@if (!string.IsNullOrWhiteSpace(statusMessage))
+{
+    <div class="alert @statusCssClass alert-dismissible fade show" role="alert">
+        @statusMessage
+        <button type="button" class="btn-close" @onclick="() => statusMessage = string.Empty"></button>
+    </div>
+}
+
+@if (stockRows.Count == 0)
+{
+    <div class="alert alert-info">No stock records are available.</div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>Product</th>
+                    <th>Category</th>
+                    <th>Location</th>
+                    <th class="text-end">Current Stock</th>
+                    <th style="width: 160px;">Quantity Sold</th>
+                    <th style="width: 120px;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var row in stockRows)
+                {
+                    <tr>
+                        <td>@row.ProductName</td>
+                        <td>@row.CategoryName</td>
+                        <td>@row.LocationName</td>
+                        <td class="text-end">@row.Quantity</td>
+                        <td>
+                            <input type="number"
+                                   class="form-control form-control-sm"
+                                   min="1"
+                                   max="@row.Quantity"
+                                   disabled="@(row.Quantity <= 0)"
+                                   @bind="row.SaleQuantity" />
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-primary"
+                                    disabled="@(!CanSubmit(row))"
+                                    @onclick="() => SubmitSaleAsync(row)">
+                                Submit
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private List<SalesStockRow> stockRows = new();
+    private string statusMessage = string.Empty;
+    private string statusCssClass = "alert-info";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadStockRowsAsync();
+    }
+
+    private async Task LoadStockRowsAsync()
+    {
+        using var context = await DbFactory.CreateDbContextAsync();
+
+        var productLocations = await context.ProductLocations
+            .Include(pl => pl.Product)
+                .ThenInclude(p => p.Category)
+            .Include(pl => pl.Location)
+            .OrderBy(pl => pl.Product.Name)
+            .ThenBy(pl => pl.Location.Name)
+            .ToListAsync();
+
+        stockRows = productLocations.Select(pl => new SalesStockRow
+        {
+            ProductLocationId = pl.Id,
+            ProductName = pl.Product.Name,
+            CategoryName = pl.Product.Category.Name,
+            LocationName = pl.Location.Name,
+            Quantity = pl.Quantity
+        }).ToList();
+    }
+
+    private static bool CanSubmit(SalesStockRow row)
+    {
+        return row.Quantity > 0 &&
+               row.SaleQuantity > 0 &&
+               row.SaleQuantity <= row.Quantity;
+    }
+
+    private async Task SubmitSaleAsync(SalesStockRow row)
+    {
+        if (!CanSubmit(row))
+        {
+            statusMessage = "Enter a valid quantity that does not exceed current stock.";
+            statusCssClass = "alert-warning";
+            return;
+        }
+
+        using var context = await DbFactory.CreateDbContextAsync();
+        var productLocation = await context.ProductLocations
+            .Include(pl => pl.Product)
+            .Include(pl => pl.Location)
+            .FirstOrDefaultAsync(pl => pl.Id == row.ProductLocationId);
+
+        if (productLocation is null)
+        {
+            statusMessage = "The selected stock record no longer exists.";
+            statusCssClass = "alert-danger";
+            await LoadStockRowsAsync();
+            return;
+        }
+
+        if (row.SaleQuantity > productLocation.Quantity)
+        {
+            statusMessage = "The sale quantity exceeds the latest stock count. The list has been refreshed.";
+            statusCssClass = "alert-warning";
+            await LoadStockRowsAsync();
+            return;
+        }
+
+        productLocation.Quantity -= row.SaleQuantity;
+        productLocation.LastUpdated = DateTime.UtcNow;
+
+        await context.SaveChangesAsync();
+
+        statusMessage = $"Sale submitted for {row.ProductName} at {row.LocationName}.";
+        statusCssClass = "alert-success";
+        await LoadStockRowsAsync();
+    }
+
+    private sealed class SalesStockRow
+    {
+        public int ProductLocationId { get; set; }
+        public string ProductName { get; set; } = string.Empty;
+        public string CategoryName { get; set; } = string.Empty;
+        public string LocationName { get; set; } = string.Empty;
+        public int Quantity { get; set; }
+        public int SaleQuantity { get; set; } = 1;
+    }
+}

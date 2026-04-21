@@ -18,13 +18,33 @@
             </NavLink>
         </div>
         
-        <AuthorizeView>
+        <AuthorizeView Policy="@AppPolicies.CanViewProducts">
             <Authorized>        
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="products">
                         <span class="bi bi-box-seam-fill-nav-menu" aria-hidden="true"></span> Products
                     </NavLink>
                 </div>
+            </Authorized>
+        </AuthorizeView>
+
+        <AuthorizeView Policy="@@AppPolicies.CanEnterSales">
+            <Authorized>
+                <div class="nav-item px-3">
+                    <navLink class="nav-link" href="sales">
+                        <span class="bi bi-cash-coin" aria-hidden="true"></span> Sales Input
+                    </navLink>
+                </div>
+            </Authorized>
+        </AuthorizeView>
+
+        <AuthorizeView Policy="@AppPolicies.CanManageDeliveryChecks">
+            <Authorized>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="delivery-checks">
+                        <span class="bi bi-truck" aria-hidden="true"></span> Delivery Checks
+                    </NavLink>
+                </div> 
             </Authorized>
         </AuthorizeView>
 
@@ -60,10 +80,10 @@
         </AuthorizeView>
 
         @* ── Admin-only navigation links ──
-        <AuthorizeView Roles="Admin"> checks the current user's roles.
+        <AuthorizeView Policy="@AppPolicies.CanManageUsers"> checks the current user's roles.
         The inner content is only rendered if the user has the Admin role.
         Non-admin users won't even see these links in the DOM. *@
-        <AuthorizeView Roles="Admin">
+        <AuthorizeView Policy="@AppPolicies.CanManageUsers">
             <Authorized>
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="admin/users">

@@ -1,6 +1,5 @@
 using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
-using Microsoft.AspNetCore.Mvc.ModelBinding.Validation; // Add this using!
+using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
 
 namespace PuppetFestAPP.Web.Data;
 
@@ -11,9 +10,9 @@ public class ProductLocation
     [Required]
     public int ProductId { get; set; }
 
-    [ValidateNever] // 1. Add this to stop the loop back to Product
+    [ValidateNever]
     public Product Product { get; set; } = null!;
-    
+
     [Required]
     [Range(0, int.MaxValue, ErrorMessage = "Stock cannot be negative.")]
     public int Quantity { get; set; } = 0;
@@ -21,8 +20,15 @@ public class ProductLocation
     [Required]
     public int LocationId { get; set; }
 
-    [ValidateNever] // 2. Add this to stop the loop into Location
+    [ValidateNever]
     public Location Location { get; set; } = null!;
 
     public DateTime LastUpdated { get; set; } = DateTime.UtcNow;
+
+    // Box/delivery check status is stored on the existing ProductLocation row
+    // so the app can track checks without introducing a separate workflow table.
+    public bool IsBoxChecked { get; set; }
+    public DateTime? BoxCheckedAt { get; set; }
+    public bool IsDeliveryChecked { get; set; }
+    public DateTime? DeliveryCheckedAt { get; set; }
 }

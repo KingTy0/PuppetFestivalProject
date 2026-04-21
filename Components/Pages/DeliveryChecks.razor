@@ -1,0 +1,195 @@
+@page "/delivery-checks"
+@using Microsoft.EntityFrameworkCore
+@using PuppetFestAPP.Web.Data
+@attribute [Authorize(Policy = AppPolicies.CanManageDeliveryChecks)]
+@rendermode InteractiveServer
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+
+<PageTitle>Delivery Checks</PageTitle>
+
+<h1>Delivery Checks</h1>
+
+<p class="text-muted">
+    Confirm box and delivery checks for each product/location stock row.
+</p>
+
+@if (!string.IsNullOrWhiteSpace(statusMessage))
+{
+    <div class="alert @statusCssClass alert-dismissible fade show" role="alert">
+        @statusMessage
+        <button type="button" class="btn-close" @onclick="() => statusMessage = string.Empty"></button>
+    </div>
+}
+
+@if (checkRows.Count == 0)
+{
+    <div class="alert alert-info">No delivery check records are available.</div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>Product</th>
+                    <th>Location</th>
+                    <th class="text-end">Stock</th>
+                    <th>Box Check</th>
+                    <th>Delivery Check</th>
+                    <th style="width: 240px;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var row in checkRows)
+                {
+                    <tr>
+                        <td>@row.ProductName</td>
+                        <td>@row.LocationName</td>
+                        <td class="text-end">@row.Quantity</td>
+                        <td>
+                            @if (row.IsBoxChecked)
+                            {
+                                <span class="badge bg-success">Checked</span>
+                                <span class="text-muted small ms-2">@FormatDate(row.BoxCheckedAt)</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-warning text-dark">Pending</span>
+                            }
+                        </td>
+                        <td>
+                            @if (row.IsDeliveryChecked)
+                            {
+                                <span class="badge bg-success">Checked</span>
+                                <span class="text-muted small ms-2">@FormatDate(row.DeliveryCheckedAt)</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-warning text-dark">Pending</span>
+                            }
+                        </td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <button class="btn btn-sm btn-outline-primary"
+                                        disabled="@row.IsBoxChecked"
+                                        @onclick="() => MarkBoxCheckedAsync(row)">
+                                    Box Checked
+                                </button>
+                                <button class="btn btn-sm btn-outline-primary"
+                                        disabled="@row.IsDeliveryChecked"
+                                        @onclick="() => MarkDeliveryCheckedAsync(row)">
+                                    Delivery Checked
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private List<DeliveryCheckRow> checkRows = new();
+    private string statusMessage = string.Empty;
+    private string statusCssClass = "alert-info";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCheckRowsAsync();
+    }
+
+    private async Task LoadCheckRowsAsync()
+    {
+        using var context = await DbFactory.CreateDbContextAsync();
+
+        var productLocations = await context.ProductLocations
+            .Include(pl => pl.Product)
+            .Include(pl => pl.Location)
+            .OrderBy(pl => pl.Product.Name)
+            .ThenBy(pl => pl.Location.Name)
+            .ToListAsync();
+
+        checkRows = productLocations.Select(pl => new DeliveryCheckRow
+        {
+            ProductLocationId = pl.Id,
+            ProductName = pl.Product.Name,
+            LocationName = pl.Location.Name,
+            Quantity = pl.Quantity,
+            IsBoxChecked = pl.IsBoxChecked,
+            BoxCheckedAt = pl.BoxCheckedAt,
+            IsDeliveryChecked = pl.IsDeliveryChecked,
+            DeliveryCheckedAt = pl.DeliveryCheckedAt
+        }).ToList();
+    }
+
+    private async Task MarkBoxCheckedAsync(DeliveryCheckRow row)
+    {
+        await UpdateCheckAsync(
+            row,
+            updateBoxCheck: true,
+            successMessage: $"Box check recorded for {row.ProductName} at {row.LocationName}.");
+    }
+
+    private async Task MarkDeliveryCheckedAsync(DeliveryCheckRow row)
+    {
+        await UpdateCheckAsync(
+            row,
+            updateBoxCheck: false,
+            successMessage: $"Delivery check recorded for {row.ProductName} at {row.LocationName}.");
+    }
+
+    private async Task UpdateCheckAsync(
+        DeliveryCheckRow row,
+        bool updateBoxCheck,
+        string successMessage)
+    {
+        using var context = await DbFactory.CreateDbContextAsync();
+        var productLocation = await context.ProductLocations
+            .FirstOrDefaultAsync(pl => pl.Id == row.ProductLocationId);
+
+        if (productLocation is null)
+        {
+            statusMessage = "The selected stock record no longer exists.";
+            statusCssClass = "alert-danger";
+            await LoadCheckRowsAsync();
+            return;
+        }
+
+        var checkedAt = DateTime.UtcNow;
+
+        if (updateBoxCheck)
+        {
+            productLocation.IsBoxChecked = true;
+            productLocation.BoxCheckedAt = checkedAt;
+        }
+        else
+        {
+            productLocation.IsDeliveryChecked = true;
+            productLocation.DeliveryCheckedAt = checkedAt;
+        }
+
+        await context.SaveChangesAsync();
+
+        statusMessage = successMessage;
+        statusCssClass = "alert-success";
+        await LoadCheckRowsAsync();
+    }
+
+    private static string FormatDate(DateTime? value)
+    {
+        return value.HasValue ? value.Value.ToString("g") : string.Empty;
+    }
+
+    private sealed class DeliveryCheckRow
+    {
+        public int ProductLocationId { get; set; }
+        public string ProductName { get; set; } = string.Empty;
+        public string LocationName { get; set; } = string.Empty;
+        public int Quantity { get; set; }
+        public bool IsBoxChecked { get; set; }
+        public DateTime? BoxCheckedAt { get; set; }
+        public bool IsDeliveryChecked { get; set; }
+        public DateTime? DeliveryCheckedAt { get; set; }
+    }
+}

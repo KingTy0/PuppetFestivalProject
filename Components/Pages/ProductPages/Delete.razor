@@ -1,8 +1,7 @@
 @page "/products/delete/{Id:int}"
 @using Microsoft.EntityFrameworkCore
 @using PuppetFestAPP.Web.Data
-@using Microsoft.AspNetCore.Authorization
-@attribute [Authorize(Roles = AppRoles.Admin + "," + AppRoles.InventoryManager)]
+@attribute [Authorize(Policy = AppPolicies.CanEditProducts)]
 @rendermode InteractiveServer
 @inject IDbContextFactory<PuppetFestAPP.Web.Data.ApplicationDbContext> DbFactory
 @inject NavigationManager NavigationManager

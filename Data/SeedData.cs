@@ -9,6 +9,7 @@
 // before creating it, so it's safe to run on every startup.
 using PuppetFestAPP.Web.Models; // This finds your new Image class
 using Image = PuppetFestAPP.Web.Models.Image;
+using System.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 
@@ -111,15 +112,148 @@ public static class SeedData
         {
             Console.WriteLine(
                 $"  - Admin user already exists: {adminEmail}");
+
+            if (!await userManager.IsInRoleAsync(adminUser, AppRoles.Admin))
+            {
+                await userManager.AddToRoleAsync(adminUser, AppRoles.Admin);
+                Console.WriteLine($"  ✓ Added Admin role to {adminEmail}");
+            }
         }
+
+        await EnsureEveryUserHasApplicationRoleAsync(userManager);
 
         using var scope = serviceProvider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
+        EnsureDeliveryCheckColumns(context);
         SeedProducts(context);
 
     }
-#endregion
+
+    /// <summary>
+    /// Gives existing accounts a valid application role after role changes.
+    /// Users without Admin/SM/FOH/Driver are assigned Driver by default.
+    /// If no Admin exists, the first available user is promoted to Admin.
+    /// </summary>
+    private static async Task EnsureEveryUserHasApplicationRoleAsync(
+        UserManager<ApplicationUser> userManager)
+    {
+        var users = userManager.Users.ToList();
+
+        foreach (var user in users)
+        {
+            var roles = await userManager.GetRolesAsync(user);
+            var hasCurrentApplicationRole = roles.Any(role => AppRoles.AllRoles.Contains(role));
+
+            if (!hasCurrentApplicationRole)
+            {
+                await userManager.AddToRoleAsync(user, AppRoles.Driver);
+                Console.WriteLine($"  ✓ Added default Driver role to {user.Email}");
+            }
+        }
+
+        var hasAdmin = false;
+        foreach (var user in users)
+        {
+            if (await userManager.IsInRoleAsync(user, AppRoles.Admin))
+            {
+                hasAdmin = true;
+                break;
+            }
+        }
+
+        if (!hasAdmin && users.Count > 0)
+        {
+            await userManager.AddToRoleAsync(users[0], AppRoles.Admin);
+            Console.WriteLine($"  ✓ Promoted {users[0].Email} to Admin because no Admin existed.");
+        }
+    }
+
+    /// <summary>
+    /// Adds delivery-check columns to the existing ProductLocations table.
+    /// This keeps the change narrowly scoped to the existing stock/location
+    /// model and avoids introducing a separate workflow table.
+    /// </summary>
+    private static void EnsureDeliveryCheckColumns(ApplicationDbContext context)
+    {
+        AddColumnIfMissing(
+            context,
+            "ProductLocations",
+            "IsBoxChecked",
+            "INTEGER NOT NULL DEFAULT 0");
+
+        AddColumnIfMissing(
+            context,
+            "ProductLocations",
+            "BoxCheckedAt",
+            "TEXT NULL");
+
+        AddColumnIfMissing(
+            context,
+            "ProductLocations",
+            "IsDeliveryChecked",
+            "INTEGER NOT NULL DEFAULT 0");
+
+        AddColumnIfMissing(
+            context,
+            "ProductLocations",
+            "DeliveryCheckedAt",
+            "TEXT NULL");
+    }
+
+    private static void AddColumnIfMissing(
+        ApplicationDbContext context,
+        string tableName,
+        string columnName,
+        string columnDefinition)
+    {
+        var connection = context.Database.GetDbConnection();
+        var shouldClose = connection.State == ConnectionState.Closed;
+
+        if (shouldClose)
+        {
+            connection.Open();
+        }
+
+        try
+        {
+            var columnExists = false;
+
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = $"PRAGMA table_info({tableName});";
+
+                using var reader = command.ExecuteReader();
+                while (reader.Read())
+                {
+                    if (string.Equals(
+                        reader.GetString(1),
+                        columnName,
+                        StringComparison.OrdinalIgnoreCase))
+                    {
+                        columnExists = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!columnExists)
+            {
+                using var alterCommand = connection.CreateCommand();
+                alterCommand.CommandText =
+                    $"ALTER TABLE {tableName} ADD COLUMN {columnName} {columnDefinition};";
+                alterCommand.ExecuteNonQuery();
+            }
+        }
+        finally
+        {
+            if (shouldClose)
+            {
+                connection.Close();
+            }
+        }
+    }
+    #endregion
 
 
 
@@ -543,4 +677,4 @@ public static class SeedData
 }
 
 
-    #endregion
+#endregion

@@ -9,11 +9,11 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 
     public DbSet<Product> Products { get; set; }
     public DbSet<Category> Categories { get; set; }
-   // Use the full path here to be 100% sure
+    // Use the full path here to be 100% sure
     public DbSet<PuppetFestAPP.Web.Models.Image> Images { get; set; }
     public DbSet<Location> Locations { get; set; }
     public DbSet<ProductLocation> ProductLocations { get; set; }
-    
+
     public DbSet<Inventory> Inventories { get; set; }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -40,5 +40,14 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         modelBuilder.Entity<Product>()
             .Property(p => p.IsActive)
             .HasDefaultValue(true);
+
+        // Default check flags for existing and new product/location rows.
+        modelBuilder.Entity<ProductLocation>()
+            .Property(pl => pl.IsBoxChecked)
+            .HasDefaultValue(false);
+
+        modelBuilder.Entity<ProductLocation>()
+            .Property(pl => pl.IsDeliveryChecked)
+            .HasDefaultValue(false);
     }
 }

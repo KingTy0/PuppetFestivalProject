@@ -1,36 +1,79 @@
 // File: Data/AppRoles.cs
 //
 // PURPOSE: Defines all application roles as compile-time constants.
-// Using constants (instead of raw strings) prevents typos and enables
-// IntelliSense. Every role check in the app references these constants.
+// Using constants instead of raw strings prevents typos and keeps all
+// role-based access rules consistent across pages, navigation, and seeding.
 
 namespace PuppetFestAPP.Web.Data;
 
 /// <summary>
 /// Central registry of all role names used in the application.
-/// Roles control what pages a user can access (via the [Authorize]
-/// attribute on Razor components) and what navigation links they see
-/// (via &lt;AuthorizeView&gt; in NavMenu.razor).
+///
+/// Permission hierarchy:
+/// Admin > SM > FOH > Driver
+///
+/// Driver has the smallest permission set. Any Driver-level capability is
+/// also available to FOH, SM, and Admin.
 /// </summary>
 public static class AppRoles
 {
-    /// <summary>Full system access: user management, storage admin, all features.</summary>
+    /// <summary>Full system access, including user management.</summary>
     public const string Admin = "Admin";
 
-    /// <summary>Can view and edit inventory counts, add/remove products.</summary>
-    public const string InventoryManager = "InventoryManager";
+    /// <summary>Stage manager / operations manager. Can edit operational data but cannot manage users.</summary>
+    public const string SM = "SM";
 
-    /// <summary>Can process sales at a merch stand during the festival.</summary>
-    public const string SalesStaff = "SalesStaff";
+    /// <summary>Front of house. Can view inventory/status data and enter sales.</summary>
+    public const string FOH = "FOH";
 
-    /// <summary>
-    /// Array of all role names. Used by the database seeder to create
-    /// roles on first run, and by UI components to populate dropdowns.
-    /// </summary>
-    public static readonly string[] AllRoles = new[]
-    {
+    /// <summary>Driver / delivery role. Can view stock/location/status data and complete box/delivery checks.</summary>
+    public const string Driver = "Driver";
+
+    /// <summary>All current application roles in hierarchy order.</summary>
+    public static readonly string[] AllRoles =
+    [
         Admin,
-        InventoryManager,
-        SalesStaff
-    };
+        SM,
+        FOH,
+        Driver
+    ];
+
+    /// <summary>Roles that can view product, stock, location, and delivery status information.</summary>
+    public static readonly string[] ViewProductRoles =
+    [
+        Admin,
+        SM,
+        FOH,
+        Driver
+    ];
+
+    /// <summary>Roles that can create, edit, or delete product/inventory records.</summary>
+    public static readonly string[] EditProductRoles =
+    [
+        Admin,
+        SM
+    ];
+
+    /// <summary>Roles that can enter sales.</summary>
+    public static readonly string[] SalesInputRoles =
+    [
+        Admin,
+        SM,
+        FOH
+    ];
+
+    /// <summary>Roles that can perform box and delivery checks.</summary>
+    public static readonly string[] DeliveryCheckRoles =
+    [
+        Admin,
+        SM,
+        FOH,
+        Driver
+    ];
+
+    /// <summary>Roles that can manage application users and roles.</summary>
+    public static readonly string[] UserManagementRoles =
+    [
+        Admin
+    ];
 }

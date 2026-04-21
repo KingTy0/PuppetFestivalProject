@@ -1,8 +1,7 @@
 @page "/products/details/{Id:int}"
 @using Microsoft.EntityFrameworkCore
 @using PuppetFestAPP.Web.Data
-@using Microsoft.AspNetCore.Authorization
-@attribute [Authorize]
+@attribute [Authorize(Policy = AppPolicies.CanViewProducts)]
 @inject IDbContextFactory<PuppetFestAPP.Web.Data.ApplicationDbContext> DbFactory
 @inject NavigationManager NavigationManager
 
@@ -45,7 +44,7 @@
                 @if (!string.IsNullOrEmpty(Product.Image?.FileName))
                 {
                     <img src="/images/products/@Product.Image.FileName" class="img-fluid rounded shadow"
-                style="max-height: 250px;" />
+                         style="max-height: 250px;" />
                 }
                 else
                 {
@@ -56,15 +55,15 @@
 
         <hr />
         <div class="d-flex justify-content-between align-items-center">
-            <h3>Inventory Variants (Sizes/Colors)</h3>
-            <AuthorizeView Roles="@($"{AppRoles.Admin},{AppRoles.InventoryManager}")">
+            <h3>Inventory Variants / Stock</h3>
+            <AuthorizeView Policy="@AppPolicies.CanEditProducts">
                 <Authorized>
                     <a href="@($"/products/create?parentId={Product.Id}")" class="btn btn-success btn-sm">+ Add New Variant</a>
                 </Authorized>
             </AuthorizeView>
         </div>
 
-        @if (Variants != null && Variants.Any())
+        @if (InventoryItems.Any())
         {
             <table class="table table-hover mt-3 align-middle">
                 <thead class="table-dark">
@@ -72,31 +71,42 @@
                         <th>Size</th>
                         <th>Color</th>
                         <th>Price</th>
-                        <th class="text-center">Actions</th> @* Only one Header *@
+                        <th>Stock</th>
+                        <th>Location</th>
+                        <th>Box Check</th>
+                        <th>Delivery Check</th>
+                        <AuthorizeView Policy="@AppPolicies.CanEditProducts">
+                            <Authorized>
+                                <th class="text-center">Actions</th>
+                            </Authorized>
+                        </AuthorizeView>
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var v in Variants)
+                    @foreach (var v in InventoryItems)
                     {
                         <tr>
                             <td>@(v.Size == ProductSize.NA || v.Size == null ? "—" : v.Size.ToString())</td>
                             <td>@(v.Color == ProductColor.NA || v.Color == null ? "—" : v.Color.ToString())</td>
                             <td>@v.Price.ToString("C")</td>
-                            <td class="text-center">
-                                @* Both buttons live inside this single <td> *@
-                                <div class="btn-group" role="group">
-                                    <AuthorizeView Roles="@($"{AppRoles.Admin},{AppRoles.InventoryManager}")">
-                                        <Authorized>
+                            <td>@GetStockTotal(v)</td>
+                            <td>@GetLocations(v)</td>
+                            <td>@GetBoxStatus(v)</td>
+                            <td>@GetDeliveryStatus(v)</td>
+                            <AuthorizeView Policy="@AppPolicies.CanEditProducts">
+                                <Authorized>
+                                    <td class="text-center">
+                                        <div class="btn-group" role="group">
                                             <a href="@($"/products/edit/{v.Id}")" class="btn btn-sm btn-outline-primary">
                                                 Edit
                                             </a>
                                             <a href="@($"/products/delete/{v.Id}")" class="btn btn-sm btn-outline-danger">
                                                 Delete
                                             </a>
-                                        </Authorized>
-                                    </AuthorizeView>
-                                </div>
-                            </td>
+                                        </div>
+                                    </td>
+                                </Authorized>
+                            </AuthorizeView>
                         </tr>
                     }
                 </tbody>
@@ -104,11 +114,11 @@
         }
         else
         {
-            <div class="alert alert-info mt-3">Standalone product. No variations added yet.</div>
+            <div class="alert alert-info mt-3">No inventory records are available for this product yet.</div>
         }
 
         <div class="mt-4">
-            <AuthorizeView Roles="@($"{AppRoles.Admin},{AppRoles.InventoryManager}")">
+            <AuthorizeView Policy="@AppPolicies.CanEditProducts">
                 <Authorized>
                     <a href="@($"/products/edit/{Product.Id}")" class="btn btn-primary">Edit Master</a>
                     <span>|</span>
@@ -123,23 +133,66 @@
     [Parameter] public int Id { get; set; }
     private Product? Product { get; set; }
     private List<Product> Variants { get; set; } = new();
+    private List<Product> InventoryItems { get; set; } = new();
 
     protected override async Task OnInitializedAsync()
     {
         using var context = await DbFactory.CreateDbContextAsync();
 
-        // Added .Include(p => p.Image)
         Product = await context.Products
-        .Include(p => p.Category)
-        .Include(p => p.Image)
-        .FirstOrDefaultAsync(m => m.Id == Id);
+            .Include(p => p.Category)
+            .Include(p => p.Image)
+            .Include(p => p.ProductLocations)
+                .ThenInclude(pl => pl.Location)
+            .FirstOrDefaultAsync(m => m.Id == Id);
 
         if (Product is not null)
         {
             Variants = await context.Products
-            .Where(p => p.ParentProductId == Id)
-            .OrderBy(p => p.Size)
-            .ToListAsync();
+                .Include(p => p.ProductLocations)
+                    .ThenInclude(pl => pl.Location)
+                .Where(p => p.ParentProductId == Id)
+                .OrderBy(p => p.Size)
+                .ToListAsync();
+
+            InventoryItems = Variants.Any()
+                ? Variants
+                : new List<Product> { Product };
         }
+    }
+
+    private static int GetStockTotal(Product product)
+    {
+        return product.ProductLocations.Sum(pl => pl.Quantity);
+    }
+
+    private static string GetLocations(Product product)
+    {
+        if (!product.ProductLocations.Any())
+        {
+            return "—";
+        }
+
+        return string.Join(", ", product.ProductLocations.Select(pl => pl.Location.Name));
+    }
+
+    private static string GetBoxStatus(Product product)
+    {
+        if (!product.ProductLocations.Any())
+        {
+            return "—";
+        }
+
+        return product.ProductLocations.All(pl => pl.IsBoxChecked) ? "Checked" : "Pending";
+    }
+
+    private static string GetDeliveryStatus(Product product)
+    {
+        if (!product.ProductLocations.Any())
+        {
+            return "—";
+        }
+
+        return product.ProductLocations.All(pl => pl.IsDeliveryChecked) ? "Checked" : "Pending";
     }
 }
