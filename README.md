@@ -15,6 +15,7 @@ This project was collaboratively built by students at Columbia College Chicago u
   * Implemented admin management and account settings
   * Created and imported seed data
 * Tyrone (he/him)
+  * Setup intitial Blazor Web Application scaffolding
   * Developed CRUD operations
   * Integrated Entity Framework Core
   * Built product pages
