@@ -14,7 +14,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<ProductLocation> ProductLocations { get; set; }
     public DbSet<StockTransferBox> StockTransferBoxes { get; set; }
     public DbSet<StockTransferBoxItem> StockTransferBoxItems { get; set; }
-    
+    public DbSet<Sale> Sales { get; set; }
     public DbSet<Inventory> Inventories { get; set; }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

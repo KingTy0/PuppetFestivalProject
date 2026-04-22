@@ -1,0 +1,200 @@
+@page "/sales/create"
+@using Microsoft.EntityFrameworkCore
+@using PuppetFestAPP.Web.Data
+@rendermode InteractiveServer
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject NavigationManager Navigation
+
+<div class="container mt-4">
+    <h2>Record a Sale</h2>
+    <hr />
+
+    <div class="row">
+        <!-- Sale Form -->
+        <div class="col-md-5">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Location</label>
+                        <select class="form-select" @bind="SelectedLocationId" @bind:after="LoadProducts">
+                            <option value="0">-- Select Location --</option>
+                            @foreach (var loc in Locations)
+                            {
+                                <option value="@loc.Id">@loc.Name</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Product</label>
+                        <select class="form-select" @bind="SelectedProductId" disabled="@(SelectedLocationId == 0)">
+                            <option value="0">-- Select Product --</option>
+                            @foreach (var item in AvailableProducts)
+                            {
+                                <option value="@item.ProductId">@item.ProductName (@item.StockAvailable in stock)</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Quantity to Sell</label>
+                        <input type="number" class="form-control" @bind="SaleQuantity" min="1" />
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(ErrorMessage))
+                    {
+                        <div class="alert alert-danger">@ErrorMessage</div>
+                    }
+
+                    <button class="btn btn-primary w-100" @onclick="ProcessSale" disabled="@(SelectedProductId == 0 || SaleQuantity <= 0)">
+                        Complete Sale
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+    <a href="/sales/reconcile/@SelectedLocationId" 
+       class="btn btn-warning @(SelectedLocationId == 0 ? "disabled" : "")">
+        <i class="bi bi-journal-check"></i> Manual End of Day Entry
+    </a>
+</div>
+<div class="mt-4">
+    <h4>Today's Sales History</h4>
+    <div class="card shadow-sm">
+        <table class="table table-sm table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Time</th>
+                    <th>Product</th>
+                    <th>Qty</th>
+                    <th>Location</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var sale in RecentSales)
+                {
+                    <tr>
+                        <td>@sale.SaleDate.ToLocalTime().ToString("t")</td>
+                        <td>@sale.Product.Name</td>
+                        <td>@sale.QuantitySold</td>
+                        <td>@sale.Location.Name</td>
+                    </tr>
+                }
+                @if (!RecentSales.Any())
+                {
+                    <tr>
+                        <td colspan="4" class="text-center text-muted">No sales recorded yet today.</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+        <!-- Recent Activity / Receipt Summary -->
+        <div class="col-md-7">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">Success Log</div>
+                <ul class="list-group list-group-flush">
+                    @foreach (var log in SaleLogs)
+                    {
+                        <li class="list-group-item">
+                            <i class="bi bi-check-circle text-success"></i> @log
+                        </li>
+                    }
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private int SelectedLocationId;
+    private int SelectedProductId;
+    private int SaleQuantity = 1;
+    private string? ErrorMessage;
+    
+    private List<Location> Locations = new();
+    private List<ProductStockDTO> AvailableProducts = new();
+    private List<string> SaleLogs = new();
+    private List<Sale> RecentSales = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = await DbFactory.CreateDbContextAsync();
+        Locations = await context.Locations.OrderBy(l => l.Name).ToListAsync();
+        await LoadRecentSales(); // Load history on start
+    }
+
+    private async Task LoadRecentSales()
+    {
+        using var context = await DbFactory.CreateDbContextAsync();
+        var today = DateTime.UtcNow.Date;
+        
+        RecentSales = await context.Sales
+            .Include(s => s.Product)
+            .Include(s => s.Location)
+            .Where(s => s.SaleDate >= today && !s.IsManualAdjustment)
+            .OrderByDescending(s => s.SaleDate)
+            .Take(10)
+            .ToListAsync();
+    }
+
+    private async Task LoadProducts()
+    {
+        if (SelectedLocationId == 0) return;
+
+        using var context = await DbFactory.CreateDbContextAsync();
+        AvailableProducts = await context.ProductLocations
+            .Where(pl => pl.LocationId == SelectedLocationId && pl.Quantity > 0)
+            .Select(pl => new ProductStockDTO
+            {
+                ProductId = pl.ProductId,
+                ProductName = pl.Product.Name,
+                StockAvailable = pl.Quantity
+            }).ToListAsync();
+    }
+
+    private async Task ProcessSale()
+    {
+        ErrorMessage = null;
+        using var context = await DbFactory.CreateDbContextAsync();
+
+        var stockRecord = await context.ProductLocations
+            .FirstOrDefaultAsync(pl => pl.LocationId == SelectedLocationId && pl.ProductId == SelectedProductId);
+
+        if (stockRecord == null || stockRecord.Quantity < SaleQuantity)
+        {
+            ErrorMessage = "Insufficient stock!";
+            return;
+        }
+
+        stockRecord.Quantity -= SaleQuantity;
+        stockRecord.LastUpdated = DateTime.UtcNow;
+
+        var product = await context.Products.FindAsync(SelectedProductId);
+        context.Sales.Add(new Sale
+        {
+            ProductId = SelectedProductId,
+            LocationId = SelectedLocationId,
+            QuantitySold = SaleQuantity,
+            UnitPriceAtSale = product?.Price ?? 0,
+            SaleDate = DateTime.UtcNow,
+            IsManualAdjustment = false
+        });
+
+        await context.SaveChangesAsync();
+
+        SaleLogs.Insert(0, $"{DateTime.Now.ToShortTimeString()}: Sold {SaleQuantity}x {product?.Name}");
+        
+        SaleQuantity = 1;
+        await LoadProducts(); 
+        await LoadRecentSales(); // NEW: Update the history table immediately!
+    }
+
+    public class ProductStockDTO
+    {
+        public int ProductId { get; set; }
+        public string ProductName { get; set; } = "";
+        public int StockAvailable { get; set; }
+    }
+}

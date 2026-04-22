@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using PuppetFestAPP.Web.Data;
 
@@ -10,9 +11,11 @@ using PuppetFestAPP.Web.Data;
 namespace PuppetFestAPP.Web.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260422213312_AddSalesTable")]
+    partial class AddSalesTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.9");
@@ -363,39 +366,6 @@ namespace PuppetFestAPP.Web.Migrations
                     b.ToTable("ProductLocations");
                 });
 
-            modelBuilder.Entity("PuppetFestAPP.Web.Data.Sale", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("IsManualAdjustment")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("LocationId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("ProductId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("QuantitySold")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("SaleDate")
-                        .HasColumnType("TEXT");
-
-                    b.Property<decimal>("UnitPriceAtSale")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("LocationId");
-
-                    b.HasIndex("ProductId");
-
-                    b.ToTable("Sales");
-                });
-
             modelBuilder.Entity("PuppetFestAPP.Web.Data.StockTransferBox", b =>
                 {
                     b.Property<int>("Id")
@@ -567,25 +537,6 @@ namespace PuppetFestAPP.Web.Migrations
 
                     b.HasOne("PuppetFestAPP.Web.Data.Product", "Product")
                         .WithMany("ProductLocations")
-                        .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Location");
-
-                    b.Navigation("Product");
-                });
-
-            modelBuilder.Entity("PuppetFestAPP.Web.Data.Sale", b =>
-                {
-                    b.HasOne("PuppetFestAPP.Web.Data.Location", "Location")
-                        .WithMany()
-                        .HasForeignKey("LocationId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("PuppetFestAPP.Web.Data.Product", "Product")
-                        .WithMany()
                         .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();

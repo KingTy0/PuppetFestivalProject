@@ -1,0 +1,153 @@
+@page "/sales/reconcile/{LocationId:int}"
+@using Microsoft.EntityFrameworkCore
+@using PuppetFestAPP.Web.Data
+@rendermode InteractiveServer
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject NavigationManager Navigation
+
+<h3>Daily Sales Reconciliation: @LocationName</h3>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Product</th>
+            <th>System Predicted Sales</th>
+            <th>Actual Sales (Manual Count)</th>
+            <th>Discrepancy</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in ReconcileList)
+        {
+            <tr>
+                <td>@item.ProductName</td>
+                <td>@item.SystemSalesCount</td>
+                <td>
+                    <input type="number" class="form-control" @bind="item.ActualSalesCount" />
+                </td>
+                <td>
+                    @if(item.ActualSalesCount - item.SystemSalesCount != 0)
+                    {
+                        <span class="text-danger">@(item.ActualSalesCount - item.SystemSalesCount)</span>
+                    }
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+<div class="card bg-light mb-3">
+    <div class="card-body d-flex justify-content-between align-items-center">
+        <div>
+            <h4 class="mb-0">Total Expected Revenue</h4>
+            <small class="text-muted">Based on your manual count of items sold today.</small>
+        </div>
+        <h2 class="text-success">@TotalRevenue.ToString("C")</h2>
+    </div>
+</div>
+
+
+<button class="btn btn-primary" @onclick="SaveReconciliation">Finalize Nightly Sales</button>
+
+@code {
+    [Parameter] public int LocationId { get; set; }
+    private string LocationName = "";
+    private List<SaleReconcileItem> ReconcileList = new();
+
+    protected override async Task OnInitializedAsync()
+{
+    using var context = await DbFactory.CreateDbContextAsync();
+    
+    var location = await context.Locations.FindAsync(LocationId);
+    if (location != null) LocationName = location.Name;
+
+    // This ensures we ONLY count sales from the current calendar day
+    var startOfToday = DateTime.UtcNow.Date; 
+
+    var salesToday = await context.Sales
+        .Where(s => s.LocationId == LocationId && s.SaleDate >= startOfToday)
+        .ToListAsync();
+
+    var products = await context.Products.ToListAsync();
+    
+    ReconcileList = products.Select(p => new SaleReconcileItem
+    {
+        ProductId = p.Id,
+        ProductName = p.Name,
+        UnitPrice = p.Price,
+        SystemSalesCount = salesToday.Where(s => s.ProductId == p.Id).Sum(s => s.QuantitySold),
+        ActualSalesCount = salesToday.Where(s => s.ProductId == p.Id).Sum(s => s.QuantitySold)
+    }).ToList();
+}
+
+
+private async Task SaveReconciliation()
+{
+    using var context = await DbFactory.CreateDbContextAsync();
+
+    foreach (var item in ReconcileList)
+    {
+        var discrepancy = item.ActualSalesCount - item.SystemSalesCount;
+
+        // If discrepancy is 4, it means 4 more units were sold than recorded.
+        if (discrepancy != 0)
+        {
+            // 1. Find the specific stock record for this location and product
+            var stockRecord = await context.ProductLocations
+                .FirstOrDefaultAsync(pl => pl.LocationId == LocationId && pl.ProductId == item.ProductId);
+
+            if (stockRecord != null)
+            {
+                // 2. DECREMENT: This is the fix for the "19 vs 15" problem.
+                stockRecord.Quantity -= discrepancy; 
+                stockRecord.LastUpdated = DateTime.UtcNow;
+
+                // 3. LOG: Record this adjustment so your analytics show the truth.
+                var product = await context.Products.FindAsync(item.ProductId);
+                context.Sales.Add(new Sale
+                {
+                    ProductId = item.ProductId,
+                    LocationId = LocationId,
+                    QuantitySold = discrepancy,
+                    UnitPriceAtSale = product?.Price ?? 0,
+                    SaleDate = DateTime.UtcNow,
+                    IsManualAdjustment = true 
+                });
+            }
+            else 
+            {
+                // SAFETY CHECK: If this triggers, the wrong LocationId was passed.
+                Console.WriteLine($"[DEBUG] No stock found for Prod ID: {item.ProductId} at Loc ID: {LocationId}");
+            }
+        }
+    }
+
+    await context.SaveChangesAsync();
+    Navigation.NavigateTo("/inventory/stock");
+}
+
+
+
+  // This will automatically update whenever the user types in the "Actual Sales" boxes
+private decimal TotalRevenue => ReconcileList.Sum(item => item.ActualSalesCount * item.UnitPrice);
+
+public class SaleReconcileItem
+{
+    public int ProductId { get; set; }
+    public string ProductName { get; set; } = "";
+    public decimal UnitPrice { get; set; } // Make sure to add this!
+    public int SystemSalesCount { get; set; }
+    public int ActualSalesCount { get; set; }
+}
+
+
+}
+Use code with caution.
+Why this fixes it:
+C# needs to know what a SaleReconcileItem looks like before it can create a List of them. By adding that public class inside your code block, you're defining the "blueprint" for the items in your table.
+Try running dotnet build again. It should go through clean now!
+Once it builds, do you want to add the code that automatically calculates the SystemSalesCount by looking at your new Sales table?
+
+
+
+
+

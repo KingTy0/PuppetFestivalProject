@@ -28,4 +28,17 @@ public class ProductService
             .Include(p => p.Category)
             .FirstOrDefaultAsync(p => p.Id == id);
     }
+    public async Task<bool> DeductStockAsync(int productId, int locationId, int quantity)
+{
+    var stock = await _context.ProductLocations
+        .FirstOrDefaultAsync(pl => pl.ProductId == productId && pl.LocationId == locationId);
+
+    if (stock == null || stock.Quantity < quantity) return false;
+
+    stock.Quantity -= quantity;
+    stock.LastUpdated = DateTime.UtcNow;
+    
+    await _context.SaveChangesAsync();
+    return true;
+}
 }
