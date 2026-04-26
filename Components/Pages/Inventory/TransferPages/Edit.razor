@@ -1,0 +1,156 @@
+@page "/inventory/transfer/edit/{Id:int}"
+@using Microsoft.EntityFrameworkCore
+@using PuppetFestAPP.Web.Data
+@rendermode InteractiveServer
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject NavigationManager Navigation
+
+<PageTitle>Edit Transfer</PageTitle>
+
+@if (TransferBox == null)
+{
+    <div class="alert alert-warning">Loading...</div>
+}
+else
+{
+    <div class="container mt-4">
+        <h1>Edit Transfer #@TransferBox.Id</h1>
+        
+        <EditForm Model="Form" OnValidSubmit="UpdateTransfer" FormName="editTransfer" Enhance>
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-danger" />
+
+            <div class="row mb-3">
+                <div class="col-md-5">
+                    <label class="form-label">From Location</label>
+                    <InputSelect @bind-Value="Form.FromLocationId" class="form-control" disabled="@IsReadOnly">
+                        @foreach (var loc in Locations.Where(l => l.IsActive))
+                        {
+                            <option value="@loc.Id">@loc.Name (@loc.Type)</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="col-md-5">
+                    <label class="form-label">To Location</label>
+                    <InputSelect @bind-Value="Form.ToLocationId" class="form-control" disabled="@IsReadOnly">
+                        @foreach (var loc in Locations.Where(l => l.IsActive))
+                        {
+                            <option value="@loc.Id">@loc.Name (@loc.Type)</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="button" class="btn btn-outline-secondary w-100" @onclick="ToggleEdit">
+                        @(IsReadOnly ? "Edit" : "Cancel")
+                    </button>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Notes</label>
+                <InputTextArea @bind-Value="Form.Notes" class="form-control" rows="3" disabled="@IsReadOnly" />
+            </div>
+
+            @if (!IsReadOnly)
+            {
+                <div class="alert alert-warning">
+                    <strong>Warning:</strong> Editing transfers will adjust current stock levels.
+                </div>
+            }
+
+            <div class="mt-4">
+                @if (IsReadOnly)
+                {
+                    <a href="/inventory/transfers" class="btn btn-secondary">Back</a>
+                }
+                else
+                {
+                    <button type="submit" class="btn btn-success">Save Changes</button>
+                    <a href="/inventory/transfer/details/@Id" class="btn btn-secondary">Cancel</a>
+                }
+            </div>
+        </EditForm>
+    </div>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+    private StockTransferBox? TransferBox;
+    private List<Location> Locations = new();
+    private bool IsReadOnly = true;
+
+    [SupplyParameterFromForm]
+    private TransferEditFormModel? Form { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = await DbFactory.CreateDbContextAsync();
+        Locations = await context.Locations.Where(l => l.IsActive).ToListAsync();
+        
+        TransferBox = await context.StockTransferBoxes
+            .Include(b => b.Items)
+            .FirstOrDefaultAsync(b => b.Id == Id);
+
+        if (TransferBox == null)
+        {
+            Navigation.NavigateTo("/inventory/transfers");
+            return;
+        }
+
+        Form = new TransferEditFormModel
+        {
+            FromLocationId = TransferBox.FromLocationId,
+            ToLocationId = TransferBox.ToLocationId,
+            Notes = TransferBox.Notes
+        };
+    }
+
+    private void ToggleEdit() => IsReadOnly = !IsReadOnly;
+
+    private async Task UpdateTransfer()
+    {
+        using var context = await DbFactory.CreateDbContextAsync();
+        var box = await context.StockTransferBoxes.Include(b => b.Items).FirstOrDefaultAsync(b => b.Id == Id);
+        
+        if (box == null || box.IsDelivered) return; // Cannot edit delivered boxes
+
+        using var transaction = await context.Database.BeginTransactionAsync();
+        try {
+            // Handle Location Change
+            if (box.FromLocationId != Form.FromLocationId) {
+                foreach (var item in box.Items) {
+                    // 1. Refund the OLD location
+                    var oldStock = await context.ProductLocations.FirstOrDefaultAsync(pl => pl.LocationId == box.FromLocationId && pl.ProductId == item.ProductId);
+                    if (oldStock == null) {
+                        context.ProductLocations.Add(new ProductLocation { LocationId = box.FromLocationId, ProductId = item.ProductId, Quantity = item.Quantity });
+                    } else {
+                        oldStock.Quantity += item.Quantity;
+                    }
+
+                    
+                    var newStock = await context.ProductLocations.FirstOrDefaultAsync(pl => pl.LocationId == Form.FromLocationId && pl.ProductId == item.ProductId);
+                    if (newStock == null || newStock.Quantity < item.Quantity) {
+                        throw new Exception($"New location doesn't have enough {item.ProductId}!");
+                    }
+                    newStock.Quantity -= item.Quantity;
+                }
+                box.FromLocationId = Form.FromLocationId;
+            }
+            
+            box.ToLocationId = Form.ToLocationId;
+            box.Notes = Form.Notes;
+            await context.SaveChangesAsync();
+            await transaction.CommitAsync();
+        } catch (Exception ex) {
+            await transaction.RollbackAsync();
+            // Show error to user
+        }
+    }
+
+    public class TransferEditFormModel
+    {
+        public int FromLocationId { get; set; }
+        public int ToLocationId { get; set; }
+        public string? Notes { get; set; }
+    }
+}

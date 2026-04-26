@@ -1,0 +1,109 @@
+@page "/inventory"
+@using Microsoft.EntityFrameworkCore
+@using PuppetFestAPP.Web.Data
+@rendermode InteractiveServer
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+
+<PageTitle>Inventory Dashboard</PageTitle>
+
+<div class="container-fluid">
+    <h1>Inventory Dashboard</h1>
+    
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <a href="/inventory/stock" class="card text-center p-3 bg-primary text-white">
+                <h3>Stock Levels</h3>
+                <p class="mb-0 fs-1">@TotalStock</p>
+            </a>
+        </div>
+        <div class="col-md-3">
+            <a href="/inventory/transfers" class="card text-center p-3 bg-success text-white">
+                <h3>Recent Transfers</h3>
+                <p class="mb-0">@RecentTransfers</p>
+            </a>
+        </div>
+        <div class="col-md-3">
+            <a href="/inventory/transfer/create" class="card text-center p-3 bg-warning text-dark">
+                <h3>New Transfer</h3>
+                <p class="mb-0">Create Box</p>
+            </a>
+        </div>
+        <div class="col-md-3">
+            <a href="/locations" class="card text-center p-3 bg-info text-white">
+                <h3>Locations</h3>
+                <p class="mb-0">@ActiveLocations</p>
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <h3>Recent Transfers</h3>
+            @if (RecentBoxes.Any())
+            {
+                <div class="list-group">
+                    @foreach (var box in RecentBoxes.Take(5))
+                    {
+                        <a href="/inventory/transfer/details/@box.Id" class="list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6>@box.FromLocation.Name → @box.ToLocation.Name</h6>
+                                <small>@box.CreatedAt.ToString("MMM dd")</small>
+                            </div>
+                            <p class="mb-1">@box.Items.Count items</p>
+                            <small>@box.Notes</small>
+                        </a>
+                    }
+                </div>
+            }
+        </div>
+        <div class="col-md-6">
+            <h3>Low Stock Alerts</h3>
+            @if (LowStock.Any())
+            {
+                <ul class="list-group">
+                    @foreach (var item in LowStock.Take(5))
+                    {
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            @item.Product.Name
+                            <span class="badge bg-warning rounded-pill">@item.Quantity total</span>
+                        </li>
+                    }
+                </ul>
+            }
+            else
+            {
+                <div class="alert alert-success">All products have sufficient stock</div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private int TotalStock;
+    private int ActiveLocations;
+    private int RecentTransfers;
+    private List<StockTransferBox> RecentBoxes = new();
+    private List<ProductLocation> LowStock = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = await DbFactory.CreateDbContextAsync();
+        
+        TotalStock = await context.ProductLocations.SumAsync(pl => (int?)pl.Quantity) ?? 0;
+        ActiveLocations = await context.Locations.CountAsync(l => l.IsActive);
+        RecentTransfers = await context.StockTransferBoxes.CountAsync();
+        
+        RecentBoxes = await context.StockTransferBoxes
+            .Include(b => b.FromLocation)
+            .Include(b => b.ToLocation)
+            .Include(b => b.Items)
+            .OrderByDescending(b => b.CreatedAt)
+            .Take(10)
+            .ToListAsync();
+
+        LowStock = await context.ProductLocations
+            .Include(pl => pl.Product)
+            .Where(pl => pl.Quantity < 5)
+            .ToListAsync();
+    }
+}
