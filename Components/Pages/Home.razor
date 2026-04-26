@@ -13,12 +13,11 @@
 
 @page "/"
 
-<PageTitle>Puppet Fest Merch</PageTitle>
-
+<pagetitle>Puppet Fest Merch</pagetitle>
 <AuthorizeView>
     @* ── Content for logged-in users ── *@
     <Authorized>
-        <h1>Welcome back, @context.User.Identity?.Name!</h1>
+        <h1>Welcome back, @User.Identity?.Name!</h1>
         <p>You are logged in.
             <a href="/dashboard">Go to Dashboard →</a>
         </p>
@@ -26,16 +25,21 @@
 
     @* ── Content for anonymous visitors ── *@
     <NotAuthorized>
-        <h1>Puppet Festival Merchandise</h1>
-        <p class="lead">
+<h1>Puppet Festival Merchandise</h1>
+<p class="lead">
             Welcome to the Chicago Puppet Festival merchandise
             management system.
         </p>
-        <p>
+<p>
             @* These links point to the Identity pages that were
                auto-generated in Components/Account/Pages/ *@
+<<<<<<< Updated upstream
             <a href="Account/Login"  class="btn btn-primary btn-lg me-2">Login</a>
             <a href="Account/Register" class="btn btn-outline-secondary btn-lg">Register</a>
+=======
+            <MudButton color="Color.Primary" href="Account/Login" variant="Variant.Filled">Login</MudButton>
+            <MudButton color="Color.Primary" href="Account/Register" variant="Variant.Filled">Register</MudButton>
+>>>>>>> Stashed changes
         </p>
     </NotAuthorized>
 </AuthorizeView>

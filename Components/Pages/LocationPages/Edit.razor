@@ -1,25 +1,25 @@
-@page "/locations/edit/{Id:int}"
+@page "/Locations/edit/{Id:int}"
 @using Microsoft.EntityFrameworkCore
 @using PuppetFestAPP.Web.Data
 @inject IDbContextFactory<ApplicationDbContext> DbFactory
 @inject NavigationManager Navigation
 @rendermode InteractiveServer
 
-<PageTitle>Edit Location</PageTitle>
-
-<div class="container mt-4">
-    <h1>Edit Location</h1>
+<pagetitle>Edit Location</pagetitle>
+<div class="container" class="mt-4">
+<h1>Edit Location</h1>
 
     @if (Location == null)
     {
-        <div class="alert alert-info">Loading...</div>
+        <div class="alert alert-info">Loading...</div></div>
     }
     else
     {
-        <EditForm Model="Location" OnValidSubmit="UpdateLocation" FormName="editLocation">
+        <editform formname="editLocation" model="Location" onvalidsubmit="UpdateLocation">
             @* We removed the DataAnnotationsValidator here so the address won't blink red *@
 
             <div class="mb-3">
+<<<<<<< Updated upstream
                 <label class="form-label">Location Name (Required)</label>
                 <InputText @bind-Value="Location.Name" class="form-control" />
                 @* We only show validation for the Name *@
@@ -46,7 +46,32 @@
             </div>
         </EditForm>
     }
+=======
+<label class="form-label">Location Name (Required)</label>
+<MudTextfield __at__bind-value="Location.Name"></MudTextfield>
+                @* We only show validation for the Name *@
+                @if (string.IsNullOrWhiteSpace(Location.Name))
+                {
+                    <div class="mud-text-error">A Location name is required.</div>
+                }
+            </div>
+<div class="mb-3">
+<label class="form-label">Address (Optional)</label>
+<MudTextfield __at__bind-value="Location.Address" placeholder="Leave blank for Vans"></MudTextfield>
+<div class="form-text">If left blank, a placeholder space will be used to satisfy the system.</div>
+>>>>>>> Stashed changes
 </div>
+<div class="mb-3 form-check">
+<MudCheckbox __at__bind-checked="Location.IsActive" id="activeCheck"></MudCheckbox>
+<label class="form-check-label" for="activeCheck">Is Active (Visible in Menus)</label>
+</div>
+<div class="mt-4">
+<MudButton color="Color.Primary" type="Submit" variant="Variant.Filled">Save Changes</MudButton>
+<MudButton color="Color.Secondary" href="/Locations" variant="Variant.Filled">Cancel</MudButton>
+</div>
+</editform>
+    }
+
 
 @code {
     [Parameter] public int Id { get; set; }
@@ -77,6 +102,6 @@
         context.Locations.Update(Location);
         await context.SaveChangesAsync();
         
-        Navigation.NavigateTo("/locations");
+        Navigation.NavigateTo("/Locations");
     }
-}
+}</ApplicationDbContext>

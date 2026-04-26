@@ -5,24 +5,27 @@
 @rendermode InteractiveServer
 @inject IDbContextFactory<ApplicationDbContext> DbFactory
 
-<PageTitle>Transfer History</PageTitle>
-
+<pagetitle>Transfer History</pagetitle>
 <h1>Transfer Boxes</h1>
+<<<<<<< Updated upstream
 <a href="/inventory/transfer/create" class="btn btn-primary mb-3">+ New Transfer</a>
+=======
+<MudButton color="Color.Primary" href="/inventory/transfer/create" variant="Variant.Filled">+ New Transfer</MudButton>
+>>>>>>> Stashed changes
 
 @if (TransferBoxes?.Any() == true)
 {
-    <QuickGrid Items="@((IQueryable<StockTransferBox>)TransferBoxes.AsQueryable())" TGridItem="StockTransferBox" Pagination="pagination">
-        <TemplateColumn Title="Date" Context="box">
+    <quickgrid items="@((IQueryable<StockTransferBox>)TransferBoxes.AsQueryable())" pagination="pagination" tgriditem="StockTransferBox">
+<templatecolumn context="box" title="Date">
             @box.CreatedAt.ToString("MMM dd, yyyy")
         </TemplateColumn>
-        <TemplateColumn Title="From → To" Context="box">
-            <span class="badge bg-secondary">@box.FromLocation.Name</span>
-            <i class="bi bi-arrow-right ms-1"></i>
-            <span class="badge bg-primary">@box.ToLocation.Name</span>
-        </TemplateColumn>
-        <PropertyColumn Property="@(x => x.Items.Count)" Title="# Items" />
-        <TemplateColumn Title="Items" Context="box">
+<templatecolumn context="box" title="From → To">
+<span class="badge bg-secondary">@box.FromLocation.Name</span>
+<i class="bi bi-arrow-right ms-1"></i>
+<span class="badge bg-primary">@box.ToLocation.Name</span>
+</TemplateColumn>
+<propertycolumn property="@(x => x.Items.Count)" title="# Items"></PropertyColumn>
+<templatecolumn context="box" title="Items">
             @{
                 var itemPreview = string.Join(", ", box.Items.Take(3).Select(i => $"{i.Product.Name} x{i.Quantity}"));
             }
@@ -32,17 +35,25 @@
                 <small>+@(box.Items.Count - 3) more</small>
             }
         </TemplateColumn>
+<<<<<<< Updated upstream
         <TemplateColumn Title="Actions" Context="box">
             <a href="/inventory/transfer/details/@box.Id" class="btn btn-sm btn-outline-primary">View</a>
         </TemplateColumn>
     </QuickGrid>
     <Paginator State="pagination" />
+=======
+<templatecolumn context="box" title="Actions">
+<MudButton "="" +="" box.id)"="" color="Color.Primary" details="" href="@(" inventory="" transfer="" variant="Variant.Filled">View</MudButton>
+</TemplateColumn>
+</QuickGrid>
+<paginator state="pagination"></Paginator>
+>>>>>>> Stashed changes
 }
 else
 {
     <div class="alert alert-info">
         No transfers yet. <a href="/inventory/transfer/create">Create one</a>
-    </div>
+</div>
 }
 
 @code {
@@ -59,4 +70,4 @@ else
             .OrderByDescending(b => b.CreatedAt)
             .ToListAsync();
     }
-}
+}</StockTransferBox></ApplicationDbContext>

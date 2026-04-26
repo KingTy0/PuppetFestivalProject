@@ -5,31 +5,37 @@
 @inject IDbContextFactory<ApplicationDbContext> DbFactory
 @inject NavigationManager Navigation
 
+<<<<<<< Updated upstream
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>End of Day Adjustment: @LocationName</h2>
         <button class="btn btn-success" @onclick="SaveAdjustments">
             <i class="bi bi-check-lg"></i> Save & Reconcile
         </button>
+=======
+<div class="container" class="mt-4">
+<div class="d-flex justify-content-between align-items-center mb-4">
+<h2>End of Day Adjustment: @LocationName</h2>
+<MudButton __at__onclick="SaveAdjustments" color="Color.Success" type="Submit" variant="Variant.Filled"><i class="bi bi-check-lg"></i> Save & Reconcile</MudButton>
+</div></div>
+<div class="alert alert-info py-2">
+<i class="bi bi-info-circle"></i> Use this to match digital stock with physical counts. Entering <strong>0</strong> will remove the item from this Location.
+>>>>>>> Stashed changes
     </div>
-
-    <div class="alert alert-info py-2">
-        <i class="bi bi-info-circle"></i> Use this to match digital stock with physical counts. Entering <strong>0</strong> will remove the item from this location.
-    </div>
-
-    <table class="table table-hover align-middle">
-        <thead class="table-dark">
-            <tr>
-                <th>Product</th>
-                <th class="text-center">Current System</th>
-                <th class="text-center">Actual Physical</th>
-                <th class="text-center">Discrepancy</th>
-            </tr>
-        </thead>
-        <tbody>
+<table class="table table-hover align-middle">
+<thead class="table-dark">
+<tr>
+<th>Product</th>
+<th class="text-center">Current System</th>
+<th class="text-center">Actual Physical</th>
+<th class="text-center">Discrepancy</th>
+</tr>
+</thead>
+<tbody>
             @foreach (var item in AdjustmentList)
             {
                 <tr>
+<<<<<<< Updated upstream
                     <td>
                         <strong>@item.ProductName</strong><br/>
                         <small class="text-muted">@item.VariantDetails</small>
@@ -41,6 +47,17 @@
                                style="width: 80px;" />
                     </td>
                     <td class="text-center">
+=======
+<td>
+<strong>@item.ProductName</strong><br/>
+<small class="text-muted">@item.VariantDetails</small>
+</td>
+<td class="text-center">@item.SystemQuantity</td>
+<td class="text-center">
+<MudNumericfield __at__bind-value="item.NewQuantity" __at__bind:event="oninput" style="width: 80px;"></MudNumericfield>
+</td>
+<td class="text-center">
+>>>>>>> Stashed changes
                         @{
                             var diff = item.NewQuantity - item.SystemQuantity;
                             if (diff == 0) { <span class="text-muted">-</span> }
@@ -48,31 +65,31 @@
                             else { <span class="text-danger">@diff</span> }
                         }
                     </td>
-                </tr>
+</tr>
             }
         </tbody>
-    </table>
-</div>
+</table>
+
 
 @code {
     [Parameter] public int LocationId { get; set; }
     private string LocationName = "";
-    private List<AdjustmentItem> AdjustmentList = new();
+    private List<adjustmentitem> AdjustmentList = new();
 
     protected override async Task OnInitializedAsync()
     {
         using var context = await DbFactory.CreateDbContextAsync();
         
-        var location = await context.Locations.FindAsync(LocationId);
-        if (location == null) { Navigation.NavigateTo("/inventory"); return; }
-        LocationName = location.Name;
+        var Location = await context.Locations.FindAsync(LocationId);
+        if (Location == null) { Navigation.NavigateTo("/inventory"); return; }
+        LocationName = Location.Name;
 
-        var products = await context.Products.OrderBy(p => p.Name).ToListAsync();
+        var Products = await context.Products.OrderBy(p => p.Name).ToListAsync();
         var currentStock = await context.ProductLocations
             .Where(pl => pl.LocationId == LocationId)
             .ToListAsync();
 
-        AdjustmentList = products.Select(p => new AdjustmentItem
+        AdjustmentList = Products.Select(p => new AdjustmentItem
         {
             ProductId = p.Id,
             ProductName = p.Name,
@@ -128,4 +145,4 @@
         public int SystemQuantity { get; set; }
         public int NewQuantity { get; set; }
     }
-}
+}</adjustmentitem></ApplicationDbContext>

@@ -1,4 +1,4 @@
-@page "/products"
+@page "/Products"
 @using Microsoft.EntityFrameworkCore
 @using Microsoft.AspNetCore.Components.QuickGrid
 @using PuppetFestAPP.Web.Data
@@ -7,41 +7,43 @@
 @rendermode InteractiveServer
 @inject IDbContextFactory<ApplicationDbContext> DbFactory
 
-<PageTitle>Product Management</PageTitle>
-
+<pagetitle>Product Management</pagetitle>
 <h1>Product Management</h1>
-
 <p>
+<<<<<<< Updated upstream
     <a href="products/create" class="btn btn-primary">Create New Master Product</a>
+=======
+<MudButton color="Color.Primary" href="Products/create" variant="Variant.Filled">Create New Master Product</MudButton>
+>>>>>>> Stashed changes
 </p>
 
 @* Search Bar *@
 <div class="mb-3 mt-3">
+<<<<<<< Updated upstream
     <input type="search" class="form-control" placeholder="Search by product name..." 
            @bind="searchTerm" @bind:event="oninput" />
+=======
+<MudTextfield __at__bind-value="searchTerm" __at__bind:event="oninput" inputtype="InputType.Search" placeholder="Search by Product name..."></MudTextfield>
+>>>>>>> Stashed changes
 </div>
-
-<QuickGrid Items="FilteredProducts" Pagination="pagination">
+<quickgrid items="FilteredProducts" pagination="pagination">
     @* Image Column *@
-   <TemplateColumn Title="Image" Context="prod">
+   <templatecolumn context="prod" title="Image">
     @* We use 'prod' (lowercase) because the grid defined it as the 'Context' *@
     @if (prod.Image != null && !string.IsNullOrEmpty(prod.Image.FileName))
     {
-        <img src="/Images/products/@prod.Image.FileName" 
-     style="width: 50px; height: 50px; object-fit: cover;" 
-     class="rounded shadow-sm" />
+        <img class="rounded shadow-sm" src="/Images/Products/@prod.Image.FileName" style="width: 50px; height: 50px; object-fit: cover;"/>
     }
     else
     {
         <span>No Image</span>
     }
 </TemplateColumn>
-
-    <PropertyColumn Property="@(p => p.Name)" Sortable="true" Title="Product Name" />
-    
-    <TemplateColumn Title="Category" Sortable="true" Context="prod">
+<propertycolumn property="@(p => p.Name)" sortable="true" title="Product Name"></PropertyColumn>
+<templatecolumn context="prod" sortable="true" title="Category">
         @prod.Category?.Name
     </TemplateColumn>
+<<<<<<< Updated upstream
 
     <PropertyColumn Property="@(p => p.Price)" Format="C" Sortable="true" />
     
@@ -52,18 +54,27 @@
             <a href="@($"/products/delete/{prod.Id}")" class="btn btn-sm btn-danger">Delete</a>
         </div>
     </TemplateColumn>
+=======
+<propertycolumn format="C" property="@(p => p.Price)" sortable="true"></PropertyColumn>
+<templatecolumn context="prod" title="Actions">
+<div class="btn-group">
+<MudButton "="" +="" color="Color.Primary" edit="" href="@(" prod.id)"="" Products="" variant="Variant.Filled">Edit</MudButton>
+<MudButton "="" +="" color="Color.Primary" details="" href="@(" prod.id)"="" Products="" variant="Variant.Filled">Manage Inventory</MudButton>
+<MudButton "="" +="" color="Color.Error" delete="" href="@(" prod.id)"="" Products="" variant="Variant.Filled">Delete</MudButton>
+</div>
+</TemplateColumn>
+>>>>>>> Stashed changes
 </QuickGrid>
-
-<Paginator State="pagination" />
+<paginator state="pagination"></Paginator>
 
 @code {
-    private IQueryable<Product>? products;
+    private IQueryable<Product>? Products;
     private string searchTerm = "";
 
     private IQueryable<Product> FilteredProducts =>
         string.IsNullOrWhiteSpace(searchTerm)
-            ? products ?? Enumerable.Empty<Product>().AsQueryable()
-            : (products ?? Enumerable.Empty<Product>().AsQueryable())
+            ? Products ?? Enumerable.Empty<Product>().AsQueryable()
+            : (Products ?? Enumerable.Empty<Product>().AsQueryable())
                 .Where(p => p.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
 
     PaginationState pagination = new PaginationState { ItemsPerPage = 20 };
@@ -78,6 +89,6 @@
             .Where(p => p.ParentProductId == null)
             .ToListAsync();
 
-        products = data.AsQueryable();
+        Products = data.AsQueryable();
     }
-}
+}</Product></Product></Product></Product></ApplicationDbContext>

@@ -16,6 +16,7 @@
 @using PuppetFestAPP.Web.Data
 @attribute [Authorize]
 
+<<<<<<< Updated upstream
 @* ── Page title appears in the browser tab ── *@
 <PageTitle>Dashboard - Puppet Fest Merch</PageTitle>
 
@@ -41,9 +42,68 @@
 
         </ul>
     </div>
+=======
+<pagetitle>Dashboard - Puppet Fest Merch</pagetitle>
+<div class="container" class="mt-4">
+<h1>Hello, @UserName!</h1>
+<p class="text-muted">Welcome to the Puppet Festival Merchandise Management System.</p>
+<!-- Stats Summary Row -->
+<div class="row" class="mt-4">
+<div class="class="col-md-4"">
+<div class="card border-primary shadow-sm h-100">
+<div class="card-body text-center">
+<h6 class="text-uppercase text-muted">Today's Revenue</h6>
+<h2 class="display-6">@TotalRevenue.ToString("C")</h2>
+<small class="text-success"><i class="bi bi-cart-check"></i> From recorded sales</small>
+</div></div></div></div></div>
+<div class="class="col-md-4"">
+<div class="card border-warning shadow-sm h-100">
+<div class="card-body text-center">
+<h6 class="text-uppercase text-muted">Inventory Shrinkage</h6>
+<h2 class="display-6 text-danger">@ShrinkageCount</h2>
+<small class="text-muted">Extra items sold via manual count</small>
+</div></div></div>
+<div class="class="col-md-4"">
+<div class="card border-info shadow-sm h-100">
+<div class="card-body text-center">
+<h6 class="text-uppercase text-muted">Active Roles</h6>
+<div class="mt-2">
+                        @foreach (var role in UserRoles)
+                        {
+                            <span class="badge bg-info text-dark me-1">@role</span>
+                        }
+                    </div></div></div></div>
+<!-- Simple Over/Under Visualizer -->
+<div class="card mt-4 shadow-sm">
+<div class="card-header bg-white">
+<h5 class="mb-0">Manual vs. System Sales (Today)</h5>
+</div>
+<div class="card-body">
+            @if (TotalUnitsSold > 0)
+            {
+                <div class="progress" style="height: 30px;">
+                    @{
+                        var systemPct = (double)SystemSoldUnits / TotalUnitsSold * 100;
+                        var manualPct = (double)ShrinkageCount / TotalUnitsSold * 100;
+                    }
+                    <div class="progress-bar bg-primary" role="progressbar" style="width: @systemPct%" title="System Recorded">System: @SystemSoldUnits</div>
+<div class="progress-bar bg-warning text-dark" role="progressbar" style="width: @manualPct%" title="Manual Adjustments">Manual: @ShrinkageCount</div>
+</div>
+<div class="mt-2 small text-muted">
+<i class="bi bi-info-circle"></i> Blue represents button-clicks. Yellow represents discrepancies found during reconciliation.
+                </div>
+            }
+            else
+            {
+                <p class="text-center text-muted my-3">No sales activity recorded today yet.</p>
+            }
+        </div>
+>>>>>>> Stashed changes
 </div>
 
+
 @code {
+<<<<<<< Updated upstream
     // ── HttpContext cascading parameter ──
     // In Blazor, a "cascading parameter" is a value passed down from a
     // parent component (in this case, the App/Router). HttpContext contains
@@ -57,3 +117,53 @@
     [CascadingParameter]
     private HttpContext context { get; set; } = default!;
 }
+=======
+    private string UserName = "User";
+    private List<string> UserRoles = new();
+    
+    private decimal TotalRevenue;
+    private int SystemSoldUnits;
+    private int ShrinkageCount;
+    private int TotalUnitsSold => SystemSoldUnits + Math.Abs(ShrinkageCount);
+
+    protected override async Task OnInitializedAsync()
+    {
+        // 1. Handle Authentication (Replacement for HttpContext)
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            UserName = user.Identity.Name ?? "User";
+            foreach (var role in AppRoles.AllRoles)
+            {
+                if (user.IsInRole(role)) UserRoles.Add(role);
+            }
+        }
+
+        // 2. Fetch Today's Analytics from the Sales Table
+        using var context = await DbFactory.CreateDbContextAsync();
+        var today = DateTime.UtcNow.Date;
+
+        var salesToday = await context.Sales
+            .Where(s => s.SaleDate >= today)
+            .ToListAsync();
+
+        // Total $ made from real-time sales
+        TotalRevenue = salesToday
+            .Where(s => !s.IsManualAdjustment)
+            .Sum(s => s.QuantitySold * s.UnitPriceAtSale);
+
+        // Count units sold via "Complete Sale" button
+        SystemSoldUnits = salesToday
+            .Where(s => !s.IsManualAdjustment)
+            .Sum(s => s.QuantitySold);
+
+        // Count units added via "Reconciliation" (The Over/Under)
+        ShrinkageCount = salesToday
+            .Where(s => s.IsManualAdjustment)
+            .Sum(s => s.QuantitySold);
+    }
+}
+</string></ApplicationDbContext>
+>>>>>>> Stashed changes

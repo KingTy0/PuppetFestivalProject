@@ -6,38 +6,38 @@
 
 <PageTitle>Inventory Dashboard</PageTitle>
 
-<div class="container-fluid">
+<MudContainer>
     <h1>Inventory Dashboard</h1>
     
-    <div class="row mb-4">
-        <div class="col-md-3">
+    <MudGrid Class="mb-4">
+        <MudItem xs=12 md=3>
             <a href="/inventory/stock" class="card text-center p-3 bg-primary text-white">
                 <h3>Stock Levels</h3>
                 <p class="mb-0 fs-1">@TotalStock</p>
             </a>
-        </div>
-        <div class="col-md-3">
+        </MudItem>
+        <MudItem xs=12 md=3>
             <a href="/inventory/transfers" class="card text-center p-3 bg-success text-white">
                 <h3>Recent Transfers</h3>
                 <p class="mb-0">@RecentTransfers</p>
             </a>
-        </div>
-        <div class="col-md-3">
+        </MudItem>
+        <MudItem xs=12 md=3>
             <a href="/inventory/transfer/create" class="card text-center p-3 bg-warning text-dark">
                 <h3>New Transfer</h3>
                 <p class="mb-0">Create Box</p>
             </a>
-        </div>
-        <div class="col-md-3">
+        </MudItem>
+        <MudItem xs=12 md=3>
             <a href="/locations" class="card text-center p-3 bg-info text-white">
                 <h3>Locations</h3>
                 <p class="mb-0">@ActiveLocations</p>
             </a>
-        </div>
-    </div>
+        </MudItem>
+    </MudGrid>
 
-    <div class="row">
-        <div class="col-md-6">
+    <MudGrid>
+        <MudItem xs=12 md=6>
             <h3>Recent Transfers</h3>
             @if (RecentBoxes.Any())
             {

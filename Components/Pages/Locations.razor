@@ -1,4 +1,4 @@
-@page "/locations"
+@page "/Locations"
 @using Microsoft.EntityFrameworkCore
 @using Microsoft.AspNetCore.Components.QuickGrid
 @using PuppetFestAPP.Web.Data
@@ -6,21 +6,24 @@
 @rendermode InteractiveServer
 @inject IDbContextFactory<ApplicationDbContext> DbFactory
 
-<PageTitle>Locations</PageTitle>
-
+<pagetitle>Locations</pagetitle>
 <h1>Locations Management</h1>
-
 <p>
+<<<<<<< Updated upstream
     <a href="/locations/create" class="btn btn-primary">Create New Location</a>
+=======
+<MudButton color="Color.Primary" href="/Locations/create" variant="Variant.Filled">Create New Location</MudButton>
+>>>>>>> Stashed changes
 </p>
 
-@if (locations == null)
+@if (Locations == null)
 {
     <div class="alert alert-info">Loading...</div>
 }
 else
 {
     <div class="mb-3">
+<<<<<<< Updated upstream
         <input type="search" class="form-control" placeholder="Search by name..." 
                @bind="searchTerm" @bind:event="oninput" />
     </div>
@@ -43,16 +46,37 @@ else
     </QuickGrid>
 
     <Paginator State="pagination" />
+=======
+<MudTextfield __at__bind-value="searchTerm" __at__bind:event="oninput" inputtype="InputType.Search" placeholder="Search by name..."></MudTextfield>
+</div>
+<quickgrid items="@((IQueryable<Location>)FilteredLocations.AsQueryable())" pagination="pagination" tgriditem="Location">
+<propertycolumn property="@(l => l.Name)" sortable="true" title="Name"></PropertyColumn>
+<propertycolumn property="@(l => l.Address)" sortable="true" title="Address"></PropertyColumn>
+<templatecolumn context="loc" title="Type">
+<span "bg-info")"="" :="" bg-warning="" class="badge @(loc.Type == LocationType.Van ?" text-dark"="">
+                @loc.Type
+            </span>
+</TemplateColumn>
+<propertycolumn property="@(l => l.IsActive)" title="Active"></PropertyColumn>
+<templatecolumn context="loc" title="Actions">
+<div class="btn-group">
+<MudButton "="" +="" color="Color.Primary" edit="" href="@(" loc.id)"="" Locations="" variant="Variant.Filled">Edit</MudButton>
+<MudButton "="" +="" color="Color.Primary" delete="" href="@(" loc.id)"="" Locations="" variant="Variant.Filled">Delete</MudButton>
+</div>
+</TemplateColumn>
+</QuickGrid>
+<paginator state="pagination"></Paginator>
+>>>>>>> Stashed changes
 }
 
 @code {
-    private List<Location>? locations;
+    private List<Location>? Locations;
     private string searchTerm = "";
 
     private IEnumerable<Location> FilteredLocations =>
         string.IsNullOrWhiteSpace(searchTerm)
-            ? locations ?? Enumerable.Empty<Location>()
-            : (locations ?? Enumerable.Empty<Location>())
+            ? Locations ?? Enumerable.Empty<Location>()
+            : (Locations ?? Enumerable.Empty<Location>())
                 .Where(l => l.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
 
     PaginationState pagination = new() { ItemsPerPage = 20 };
@@ -60,6 +84,6 @@ else
     protected override async Task OnInitializedAsync()
     {
         using var context = await DbFactory.CreateDbContextAsync();
-        locations = await context.Locations.ToListAsync();
+        Locations = await context.Locations.ToListAsync();
     }
-}
+}</Location></Location></Location></Location></ApplicationDbContext>

@@ -46,8 +46,7 @@
    See the @code block for the scoping pattern. *@
 @inject IServiceProvider ServiceProvider
 
-<PageTitle>User Management</PageTitle>
-
+<pagetitle>User Management</pagetitle>
 <h1>User Management</h1>
 
 @* ── Status message banner ──
@@ -57,23 +56,29 @@
 {
     <div class="alert @statusCssClass alert-dismissible fade show" role="alert">
         @statusMessage
+<<<<<<< Updated upstream
         <button type="button" class="btn-close" @onclick="() => statusMessage = string.Empty">
         </button>
     </div>
+=======
+        <MudButton __at__onclick="() =>statusMessage = string.Empty" color="Color.Primary" type="Button" variant="Variant.Filled"></MudButton>
+</div>
+>>>>>>> Stashed changes
 }
 
 
 @* ── Create New User Form ── *@
 <div class="card mb-4">
-    <div class="card-header">
-        <h5 class="mb-0">Create New User</h5>
-    </div>
-    <div class="card-body">
-        <div class="row g-3">
-            <div class="col-md-4">
-                <label class="form-label">Email</label>
+<div class="card-header">
+<h5 class="mb-0">Create New User</h5>
+</div>
+<div class="card-body">
+<div class="row" class="g-3">
+<div class="class="col-md-4"">
+<label class="form-label">Email</label>
                 @* @bind creates two-way binding: typing updates
                    newUserEmail, and newUserEmail changes update the input *@
+<<<<<<< Updated upstream
                 <input type="email" class="form-control" @bind="newUserEmail" placeholder="user@example.com" />
             </div>
             <div class="col-md-3">
@@ -84,6 +89,17 @@
             <div class="col-md-3">
                 <label class="form-label">Role</label>
                 <select class="form-select" @bind="newUserRole">
+=======
+                <MudTextfield __at__bind-value="newUserEmail" inputtype="InputType.Email" placeholder="user@example.com"></MudTextfield>
+</div>
+<div class="class="col-md-3"">
+<label class="form-label">Password</label>
+<MudTextfield __at__bind-value="newUserPassword" inputtype="InputType.Password" placeholder="Min 6 chars, 1 upper, 1 digit"></MudTextfield>
+</div>
+<div class="class="col-md-3"">
+<label class="form-label">Role</label>
+<select __at__bind="newUserRole" class="form-select">
+>>>>>>> Stashed changes
 
                     @foreach (var role in AppRoles.AllRoles)
                     {
@@ -91,40 +107,47 @@
                     }
 
                 </select>
-            </div>
-            <div class="col-md-2 d-flex align-items-end">
+</div>
+<div class="class="col-md-2"" class="d-flex align-items-end">
                 @* @onclick binds this button to the CreateUser() method.
                    When clicked, Blazor calls CreateUser() via SignalR. *@
+<<<<<<< Updated upstream
                 <button class="btn btn-primary w-100" @onclick="CreateUser">
                     Create User
                 </button>
             </div>
         </div>
     </div>
+=======
+                <MudButton __at__onclick="CreateUser" color="Color.Primary" fullwidth="true" type="Submit" variant="Variant.Filled">Create User</MudButton>
+</div>
+</div>
+</div>
+>>>>>>> Stashed changes
 </div>
 
 @* ── User List Table ── *@
 <div class="card">
-    <div class="card-header">
-        <h5 class="mb-0">All Users (@users.Count total)</h5>
-    </div>
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-striped mb-0">
-                <thead>
-                    <tr>
-                        <th>Email</th>
-                        <th>Roles</th>
-                        <th>Email Confirmed</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
+<div class="card-header">
+<h5 class="mb-0">All Users (@users.Count total)</h5>
+</div>
+<div class="card-body p-0">
+<div class="table-responsive">
+<table class="table table-striped mb-0">
+<thead>
+<tr>
+<th>Email</th>
+<th>Roles</th>
+<th>Email Confirmed</th>
+<th>Actions</th>
+</tr>
+</thead>
+<tbody>
                     @foreach (var user in users)
                     {
                         <tr>
-                            <td>@user.Email</td>
-                            <td>
+<td>@user.Email</td>
+<td>
                                 @* Show each role as a Bootstrap badge *@
 
                                 @foreach (var role in user.Roles)
@@ -135,7 +158,7 @@
                                 }
 
                             </td>
-                            <td>
+<td>
 
                                 @if (user.EmailConfirmed)
                                 {
@@ -147,10 +170,9 @@
                                 }
 
                             </td>
-                            <td>
+<td>
                                 @* Role assignment: dropdown + "Add" button *@
-                                <select class="form-select form-select-sm
-                                    d-inline-block w-auto me-2" @bind="user.SelectedNewRole">
+                                <select __at__bind="user.SelectedNewRole" class="form-select form-select-sm d-inline-block w-auto me-2">
 
                                     @foreach (var role in AppRoles.AllRoles)
                                     {
@@ -158,6 +180,7 @@
                                     }
 
                                 </select>
+<<<<<<< Updated upstream
                                 <button class="btn btn-sm
                                     btn-outline-primary me-1" @onclick="() => AddRoleToUser(user)">
                                     + Role
@@ -172,11 +195,23 @@
                                 </button>
                             </td>
                         </tr>
+=======
+<MudButton __at__onclick="() =>AddRoleToUser(user)" color="Color.Primary" size.small="" type="Submit" variant="Variant.Outlined">
+                                    + Role</MudButton>
+
+                                @* Delete button: disabled for the seed admin
+                                   to prevent locking yourself out *@
+                                <MudButton __at__onclick="() =>DeleteUser(user)" admin__at__puppetfest.local")"="" color="Color.Error" disabled="@(user.Email ==
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      " size.small="" type="Submit" variant="Variant.Outlined">
+                                    Delete</MudButton>
+</td>
+</tr>
+>>>>>>> Stashed changes
                     }
                 </tbody>
-            </table>
-        </div>
-    </div>
+</table>
+</div>
+</div>
 </div>
 
 @code {
@@ -184,7 +219,7 @@
     // These private fields hold the page's data. Blazor automatically
     // re-renders the page whenever a state change is detected (e.g.,
     // after an @onclick handler finishes).
-    private List<UserViewModel> users = new();
+    private List<userviewmodel> users = new();
     private string newUserEmail = "";
     private string newUserPassword = "";
     private string newUserRole = AppRoles.SalesStaff; // default selection for the "Role" dropdown in the "Create New User"
@@ -215,9 +250,9 @@
         // and avoids DbContext thread-safety issues.
         using var scope = ServiceProvider.CreateScope();
         var userManager = scope.ServiceProvider
-            .GetRequiredService<UserManager<ApplicationUser>>();
+            .GetRequiredService<usermanager<applicationuser>>();
 
-        // UserManager.Users returns an IQueryable<ApplicationUser>.
+        // UserManager.Users returns an IQueryable<applicationuser>.
         // .ToList() executes the SQL query and loads all users into memory.
         foreach (var user in userManager.Users.ToList())
         {
@@ -254,7 +289,7 @@
         // ── Fresh scope for this operation ──
         using var scope = ServiceProvider.CreateScope();
         var userManager = scope.ServiceProvider
-            .GetRequiredService<UserManager<ApplicationUser>>();
+            .GetRequiredService<usermanager<applicationuser>>();
 
         var user = new ApplicationUser
         {
@@ -297,7 +332,7 @@
         // ── Fresh scope for this operation ──
         using var scope = ServiceProvider.CreateScope();
         var userManager = scope.ServiceProvider
-            .GetRequiredService<UserManager<ApplicationUser>>();
+            .GetRequiredService<usermanager<applicationuser>>();
 
         var user = await userManager.FindByIdAsync(userVm.Id);
         if (user == null) return;
@@ -329,7 +364,7 @@
         // ── Fresh scope for this operation ──
         using var scope = ServiceProvider.CreateScope();
         var userManager = scope.ServiceProvider
-            .GetRequiredService<UserManager<ApplicationUser>>();
+            .GetRequiredService<usermanager<applicationuser>>();
 
         var user = await userManager.FindByIdAsync(userVm.Id);
         if (user == null) return;
@@ -364,4 +399,4 @@
         public bool EmailConfirmed { get; set; }
         public string SelectedNewRole { get; set; } = AppRoles.SalesStaff;
     }
-}
+}</string></usermanager<applicationuser></usermanager<applicationuser></usermanager<applicationuser></applicationuser></usermanager<applicationuser></userviewmodel>

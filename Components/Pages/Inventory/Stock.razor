@@ -5,8 +5,7 @@
 @rendermode InteractiveServer
 @inject IDbContextFactory<ApplicationDbContext> DbFactory
 
-<PageTitle>Stock by Location</PageTitle>
-
+<pagetitle>Stock by Location</pagetitle>
 <h1>Stock Levels</h1>
 @if (StockData?.Any() == true)
 {
@@ -15,11 +14,12 @@
         <div class="card mb-4">
             @* The d-flex and justify-content-between push the button to the right *@
             <div class="card-header d-flex justify-content-between align-items-center">
-                <h3 class="mb-0">
+<h3 class="mb-0">
                     @locGroup.Key.Name (@((LocationType)locGroup.Key.Type)!) - Total: @locGroup.Sum(x => x.Quantity) items
                 </h3>
 
                 @* locGroup.Key is the Location object, so we grab its ID for the link *@
+<<<<<<< Updated upstream
                 <a href="/inventory/adjust/@locGroup.Key.Id" class="btn btn-outline-primary btn-sm">
                     <i class="bi bi-pencil-square"></i> End of Day Adjustment
                 </a>
@@ -28,6 +28,13 @@
             <div class="card-body p-0">
                 <QuickGrid Items="@((IQueryable<ProductLocation>)locGroup.AsQueryable())" TGridItem="ProductLocation">
                     <TemplateColumn Title="Product" Context="item">
+=======
+                <MudButton "="" +="" adjust="" color="Color.Primary" href="@(" inventory="" locgroup.key.id)"="" variant="Variant.Filled"><i class="bi bi-pencil-square"></i> End of Day Adjustment</MudButton>
+</div>
+<div class="card-body p-0">
+<quickgrid items="@((IQueryable<ProductLocation>)locGroup.AsQueryable())" tgriditem="ProductLocation">
+<templatecolumn context="item" title="Product">
+>>>>>>> Stashed changes
                         @item.Product.Name
                         @if (item.Product.Size != ProductSize.NA)
                         {
@@ -38,10 +45,10 @@
                             <text> /@item.Product.Color</text>
                         }
                     </TemplateColumn>
-                    <PropertyColumn Property="@(x => x.Quantity)" Title="Qty" />
-                </QuickGrid>
-            </div>
-        </div>
+<propertycolumn property="@(x => x.Quantity)" title="Qty"></PropertyColumn>
+</QuickGrid>
+</div>
+</div>
     }
 }
 else
@@ -65,4 +72,4 @@ else
             .ThenBy(pl => pl.Product.Name)
             .ToListAsync();
     }
-}
+}</ProductLocation></ApplicationDbContext>

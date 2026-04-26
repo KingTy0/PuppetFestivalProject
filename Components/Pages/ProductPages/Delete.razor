@@ -1,25 +1,24 @@
-@page "/products/delete/{Id:int}"
+@page "/Products/delete/{Id:int}"
 @using Microsoft.EntityFrameworkCore
 @using PuppetFestAPP.Web.Data
 @rendermode InteractiveServer
 @inject IDbContextFactory<PuppetFestAPP.Web.Data.ApplicationDbContext> DbFactory
 @inject NavigationManager NavigationManager
 
-<PageTitle>Delete</PageTitle>
-
+<pagetitle>Delete</pagetitle>
 <h1>Delete</h1>
-
 <p>Are you sure you want to delete this?</p>
 <div>
-    <h2>Product</h2>
-    <hr />
-    @if (product is null)
+<h2>Product</h2>
+<hr/>
+    @if (Product is null)
     {
         <p><em>Loading...</em></p>
     }
     else
     {
         <dl class="row">
+<<<<<<< Updated upstream
             <dt class="col-sm-2">ParentProductId</dt>
             <dd class="col-sm-10">@product.ParentProductId</dd>
         </dl>
@@ -67,20 +66,69 @@
             <button type="submit" class="btn btn-danger" disabled="@(product is null)">Delete</button> |
             <a href="/products">Back to List</a>
         </EditForm>
+=======
+<dt class="col-sm-2">ParentProductId</dt>
+<dd class="col-sm-10">@Product.ParentProductId</dd>
+</dl>
+<dl class="row">
+<dt class="col-sm-2">Name</dt>
+<dd class="col-sm-10">@Product.Name</dd>
+</dl>
+<dl class="row">
+<dt class="col-sm-2">Description</dt>
+<dd class="col-sm-10">@Product.Description</dd>
+</dl>
+<dl class="row">
+<dt class="col-sm-2">Price</dt>
+<dd class="col-sm-10">@Product.Price</dd>
+</dl>
+<dl class="row">
+<dt class="col-sm-2">Size</dt>
+<dd class="col-sm-10">@Product.Size</dd>
+</dl>
+<dl class="row">
+<dt class="col-sm-2">Color</dt>
+<dd class="col-sm-10">@Product.Color</dd>
+</dl>
+<dl class="row">
+<dt class="col-sm-2">Material</dt>
+<dd class="col-sm-10">@Product.Material</dd>
+</dl>
+<dl class="row">
+<dt class="col-sm-2">IsActive</dt>
+<dd class="col-sm-10">@Product.IsActive</dd>
+</dl>
+<dl class="row">
+<dt class="col-sm-2">DateAdded</dt>
+<dd class="col-sm-10">@Product.DateAdded</dd>
+</dl>
+<dl class="row">
+<dt class="col-sm-2">ImageId</dt>
+<dd class="col-sm-10">@Product.ImageId</dd>
+</dl>
+<dl class="row">
+<dt class="col-sm-2">CategoryId</dt>
+<dd class="col-sm-10">@Product.CategoryId</dd>
+</dl>
+<editform enhance="" formname="delete" method="post" model="Product" onvalidsubmit="DeleteProduct">
+<MudButton color="Color.Error" disabled="@(Product is null)" type="Submit" variant="Variant.Filled">Delete</MudButton> |
+            <a href="/Products">Back to List</a>
+</editform>
+>>>>>>> Stashed changes
     }
 </div>
 
 @code {
-    private Product? product;
+    private Product? Product;
 
     [Parameter] // <--- CHANGE THIS
     public int Id { get; set; }
     protected override async Task OnInitializedAsync()
     {
         using var context = DbFactory.CreateDbContext();
-        product = await context.Products.FirstOrDefaultAsync(m => m.Id == Id);
+        Product = await context.Products.FirstOrDefaultAsync(m => m.Id == Id);
 
-        if (product is null)
+        if (Product is null)
         {
             NavigationManager.NavigateTo("notfound");
         }
@@ -88,26 +136,26 @@
 
     private async Task DeleteProduct()
     {
-        if (product is null) return;
+        if (Product is null) return;
 
         using var context = DbFactory.CreateDbContext();
 
-        // 1. Capture the Parent ID before the product is gone
-        var parentId = product.ParentProductId;
+        // 1. Capture the Parent ID before the Product is gone
+        var parentId = Product.ParentProductId;
 
         // 2. Find it with inventory so it doesn't crash on foreign keys
-        var productToDelete = await context.Products
+        var ProductToDelete = await context.Products
         .Include(p => p.Inventories)
         .FirstOrDefaultAsync(p => p.Id == Id);
 
-        if (productToDelete != null)
+        if (ProductToDelete != null)
         {
-            if (productToDelete.Inventories != null && productToDelete.Inventories.Any())
+            if (ProductToDelete.Inventories != null && ProductToDelete.Inventories.Any())
             {
-                context.Inventories.RemoveRange(productToDelete.Inventories);
+                context.Inventories.RemoveRange(ProductToDelete.Inventories);
             }
 
-            context.Products.Remove(productToDelete);
+            context.Products.Remove(ProductToDelete);
             await context.SaveChangesAsync();
         }
 
@@ -115,12 +163,13 @@
         if (parentId.HasValue)
         {
             // Go back to the Master Product details
-            NavigationManager.NavigateTo($"/products/details/{parentId.Value}");
+            NavigationManager.NavigateTo($"/Products/details/{parentId.Value}");
         }
         else
         {
             // Go back to the main list
-            NavigationManager.NavigateTo("/products");
+            NavigationManager.NavigateTo("/Products");
         }
     }
 }
+</PuppetFestAPP.Web.Data.ApplicationDbContext>

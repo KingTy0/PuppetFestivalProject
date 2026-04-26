@@ -1,43 +1,49 @@
-@page "/locations/delete/{Id:int}"
+@page "/Locations/delete/{Id:int}"
 @using Microsoft.EntityFrameworkCore
 @using PuppetFestAPP.Web.Data
 @inject IDbContextFactory<ApplicationDbContext> DbFactory
 @inject NavigationManager Navigation
 @rendermode InteractiveServer
 
-<PageTitle>Delete Location</PageTitle>
-
-<div class="container mt-4">
-    <h1>Delete Location</h1>
+<pagetitle>Delete Location</pagetitle>
+<div class="container" class="mt-4">
+<h1>Delete Location</h1>
 
     @if (Location == null)
     {
-        <div class="alert alert-info">Loading...</div>
+        <div class="alert alert-info">Loading...</div></div>
     }
     else
     {
         <div class="alert alert-danger">
-            <h4>Are you sure you want to delete this?</h4>
-            <p><strong>Name:</strong> @Location.Name</p>
-            <p><strong>Address:</strong> @Location.Address</p>
-        </div>
+<h4>Are you sure you want to delete this?</h4>
+<p><strong>Name:</strong> @Location.Name</p>
+<p><strong>Address:</strong> @Location.Address</p>
+</div>
 
         @if (HasDependencies)
         {
             <div class="alert alert-warning">
-                <strong>Cannot Delete:</strong> This location has stock or transfer records associated with it. 
+<strong>Cannot Delete:</strong> This Location has stock or transfer records associated with it. 
                 You should mark it as <strong>Inactive</strong> instead.
             </div>
         }
 
         <div class="mt-4">
+<<<<<<< Updated upstream
             <button class="btn btn-danger" @onclick="ConfirmDelete" disabled="@HasDependencies">
                 Permanently Delete
             </button>
             <a href="/locations" class="btn btn-secondary">Cancel</a>
         </div>
     }
+=======
+<MudButton __at__onclick="ConfirmDelete" color="Color.Error" disabled="@HasDependencies" type="Submit" variant="Variant.Filled">Permanently Delete</MudButton>
+<MudButton color="Color.Secondary" href="/Locations" variant="Variant.Filled">Cancel</MudButton>
+>>>>>>> Stashed changes
 </div>
+    }
+
 
 @code {
     [Parameter] public int Id { get; set; }
@@ -51,10 +57,10 @@
 
         if (Location != null)
         {
-            // Check if there is any stock currently sitting in this location
+            // Check if there is any stock currently sitting in this Location
             var stockCount = await context.ProductLocations.AnyAsync(pl => pl.LocationId == Id);
             
-            // Check if this location is used in any transfer boxes
+            // Check if this Location is used in any transfer boxes
             var transferCount = await context.StockTransferBoxes.AnyAsync(b => b.FromLocationId == Id || b.ToLocationId == Id);
 
             HasDependencies = stockCount || transferCount;
@@ -72,6 +78,6 @@
             await context.SaveChangesAsync();
         }
         
-        Navigation.NavigateTo("/locations");
+        Navigation.NavigateTo("/Locations");
     }
-}
+}</ApplicationDbContext>

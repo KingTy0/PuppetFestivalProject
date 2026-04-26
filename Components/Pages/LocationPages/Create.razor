@@ -1,9 +1,10 @@
-@page "/locations/create"
+@page "/Locations/create"
 @using PuppetFestAPP.Web.Data
 @using Microsoft.EntityFrameworkCore
 @inject IDbContextFactory<ApplicationDbContext> DbFactory
 @inject NavigationManager Navigation
 
+<<<<<<< Updated upstream
 <PageTitle>Create Location</PageTitle>
 
 <div class="container mt-4">
@@ -39,7 +40,39 @@
             <a href="/locations" class="btn btn-secondary">Cancel</a>
         </div>
     </EditForm>
+=======
+<pagetitle>Create Location</pagetitle>
+<div class="container" class="mt-4">
+<h1>Create Location</h1>
+<editform enhance="" formname="createLocation" model="Form" onvalidsubmit="CreateLocation">
+<dataannotationsvalidator></dataannotationsvalidator>
+<validationsummary class="mud-text-error"></validationsummary>
+<div class="mb-3">
+<label class="form-label">Name</label>
+<MudTextfield __at__bind-value="Form.Name"></MudTextfield>
+<validationmessage for="() => Form.Name"></validationmessage>
+</div></editform></div>
+<div class="mb-3">
+<label class="form-label">Address</label>
+<MudTextfield __at__bind-value="Form.Address"></MudTextfield>
+<validationmessage for="() => Form.Address"></validationmessage>
 </div>
+<div class="mb-3">
+<label class="form-label">Type</label>
+<inputselect __at__bind-value="Form.Type">
+                @foreach (var type in Enum.GetValues<Locationtype>())
+                {
+                    <option value="@type">@type</option>
+                }
+            </Locationtype></inputselect>
+>>>>>>> Stashed changes
+</div>
+<div class="mt-4">
+<MudButton color="Color.Primary" type="Submit" variant="Variant.Filled">Create</MudButton>
+<MudButton color="Color.Secondary" href="/Locations" variant="Variant.Filled">Cancel</MudButton>
+</div>
+
+
 
 @code {
     [SupplyParameterFromForm] public LocationFormModel Form { get; set; } = new();
@@ -54,7 +87,7 @@
             Type = Form.Type 
         });
         await context.SaveChangesAsync();
-        Navigation.NavigateTo("/locations");
+        Navigation.NavigateTo("/Locations");
     }
 
     public class LocationFormModel
@@ -63,4 +96,4 @@
         public string Address { get; set; } = "";
         public LocationType Type { get; set; } = LocationType.Store;
     }
-}
+}</ApplicationDbContext>
