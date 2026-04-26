@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using MudBlazor.Services;
 using PuppetFestAPP.Web.Components;
 using PuppetFestAPP.Web.Components.Account;
 using PuppetFestAPP.Web.Data;
@@ -30,6 +31,7 @@ builder.Services.AddDbContextFactory<ApplicationDbContext>(options =>
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.")));
 
 builder.Services.AddQuickGridEntityFrameworkAdapter();
+builder.Services.AddMudServices();
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
 

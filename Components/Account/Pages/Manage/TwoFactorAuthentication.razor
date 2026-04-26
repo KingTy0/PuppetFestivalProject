@@ -43,23 +43,23 @@
         {
             <form style="display: inline-block" @formname="forget-browser" @onsubmit="OnSubmitForgetBrowserAsync" method="post">
                 <AntiforgeryToken />
-                <button type="submit" class="btn btn-primary">Forget this browser</button>
+                <MudButton Type="Submit" Variant="Variant.Filled" Color="Color.Primary">Forget this browser</MudButton>
             </form>
         }
 
-        <a href="Account/Manage/Disable2fa" class="btn btn-primary">Disable 2FA</a>
-        <a href="Account/Manage/GenerateRecoveryCodes" class="btn btn-primary">Reset recovery codes</a>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="Account/Manage/Disable2fa">Disable 2FA</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="Account/Manage/GenerateRecoveryCodes">Reset recovery codes</MudButton>
     }
 
     <h4>Authenticator app</h4>
     @if (!hasAuthenticator)
     {
-        <a href="Account/Manage/EnableAuthenticator" class="btn btn-primary">Add authenticator app</a>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="Account/Manage/EnableAuthenticator">Add authenticator app</MudButton>
     }
     else
     {
-        <a href="Account/Manage/EnableAuthenticator" class="btn btn-primary">Set up authenticator app</a>
-        <a href="Account/Manage/ResetAuthenticator" class="btn btn-primary">Reset authenticator app</a>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="Account/Manage/EnableAuthenticator">Set up authenticator app</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="Account/Manage/ResetAuthenticator">Reset authenticator app</MudButton>
     }
 }
 else

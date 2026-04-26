@@ -1,4 +1,4 @@
-﻿@page "/Account/Register"
+@page "/Account/Register"
 
 @using System.ComponentModel.DataAnnotations
 @using System.Text
@@ -26,23 +26,11 @@
             <DataAnnotationsValidator />
             <h2>Create a new account.</h2>
             <hr />
-            <ValidationSummary class="text-danger" role="alert" />
-            <div class="form-floating mb-3">
-                <InputText @bind-Value="Input.Email" id="Input.Email" class="form-control" autocomplete="username" aria-required="true" placeholder="name@example.com" />
-                <label for="Input.Email">Email</label>
-                <ValidationMessage For="() => Input.Email" class="text-danger" />
-            </div>
-            <div class="form-floating mb-3">
-                <InputText type="password" @bind-Value="Input.Password" id="Input.Password" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
-                <label for="Input.Password">Password</label>
-                <ValidationMessage For="() => Input.Password" class="text-danger" />
-            </div>
-            <div class="form-floating mb-3">
-                <InputText type="password" @bind-Value="Input.ConfirmPassword" id="Input.ConfirmPassword" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
-                <label for="Input.ConfirmPassword">Confirm Password</label>
-                <ValidationMessage For="() => Input.ConfirmPassword" class="text-danger" />
-            </div>
-            <button type="submit" class="w-100 btn btn-lg btn-primary">Register</button>
+            <ValidationSummary class="mud-text-error" role="alert" />
+            <MudTextField @bind-Value="Input.Email" AutoComplete="username" Placeholder="name@example.com" Required="true" Label="Email" For="@(() => Input.Email)" FullWidth="true" />
+            <MudTextField @bind-Value="Input.Password" InputType="InputType.Password" AutoComplete="new-password" Placeholder="password" Required="true" Label="Password" For="@(() => Input.Password)" FullWidth="true" />
+            <MudTextField @bind-Value="Input.ConfirmPassword" InputType="InputType.Password" AutoComplete="new-password" Placeholder="password" Required="true" Label="Confirm Password" For="@(() => Input.ConfirmPassword)" FullWidth="true" />
+            <MudButton Type="Submit" Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Class="mt-4">Register</MudButton>
         </EditForm>
     </div>
     <div class="col-lg-4 col-lg-offset-2">

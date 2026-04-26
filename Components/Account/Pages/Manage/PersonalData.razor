@@ -15,10 +15,10 @@
         </p>
         <form action="Account/Manage/DownloadPersonalData" method="post">
             <AntiforgeryToken />
-            <button class="btn btn-primary" type="submit">Download</button>
+            <MudButton Type="Submit" Variant="Variant.Filled" Color="Color.Primary">Download</MudButton>
         </form>
         <p>
-            <a href="Account/Manage/DeletePersonalData" class="btn btn-danger">Delete</a>
+            <MudButton Variant="Variant.Filled" Color="Color.Error" Href="Account/Manage/DeletePersonalData">Delete</MudButton>
         </p>
     </div>
 </div>
