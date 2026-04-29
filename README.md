@@ -27,6 +27,7 @@ You can see the live branch [HERE](https://backstagechicagopuppetfest-cff3bgbuhm
   * Built CRUD functionality
   * Implemented admin management and account settings
   * Created and imported seed data
+  * Edited and refined Sale and Recount Inventory pages
 * Tyrone (he/him)
   * Setup intitial Blazor Web Application scaffolding
   * Developed CRUD operations
