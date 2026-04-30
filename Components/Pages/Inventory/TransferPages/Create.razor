@@ -5,6 +5,33 @@
 @inject IDbContextFactory<ApplicationDbContext> DbFactory
 @inject NavigationManager Navigation
 
+<style>
+    /* 1. Ensure the popover container isn't 0px tall */
+    .mud-popover-content {
+        min-height: 100px !important;
+        min-width: 200px !important;
+        background-color: white !important;
+        color: black !important;
+        box-shadow: 0px 10px 30px rgba(0,0,0,0.5) !important;
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        z-index: 999999 !important;
+    }
+
+    /* 2. Fix the .NET 9 Layout 'Clip' */
+    main, .mud-main-content, .mud-container {
+        overflow: visible !important;
+    }
+
+    /* 3. Make the actual list items visible */
+    .mud-list-item {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+</style>
+
 <PageTitle>Create Transfer Box</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.Large" Class="mt-6">
@@ -12,28 +39,42 @@
 
     <EditForm Model="Form" OnValidSubmit="CreateTransfer">
         <DataAnnotationsValidator />
-        
+     
         <MudGrid>
             @* ── Locations Section ── *@
             <MudItem xs="12" md="6">
-                <MudSelect T="int?" Label="From Location (Source)" Value="Form.FromLocationId" ValueChanged="OnFromLocationChanged" ValueExpression="() => Form.FromLocationId" Variant="Variant.Outlined">
-                    <MudSelectItem T="int?" Value="null">Select Source...</MudSelectItem>
-                    @foreach (var loc in Locations)
-                    {
-                        <MudSelectItem T="int?" Value="@loc.Id">@loc.Name (@loc.Type)</MudSelectItem>
-                    }
-                </MudSelect>
-            </MudItem>
+        
+        <MudSelect T="int?" Label="From Location (Source)" 
+                   Value="Form.FromLocationId" 
+                   ValueChanged="OnFromLocationChanged" 
+                   ValueExpression="() => Form.FromLocationId" 
+                   Variant="Variant.Outlined" 
+                   AnchorOrigin="Origin.BottomCenter" 
+                   TransformOrigin="Origin.TopCenter" 
+                   Fixed="true"> 
+            <MudSelectItem T="int?" Value="null">Select Source...</MudSelectItem>
+            @foreach (var loc in Locations)
+            {
+                <MudSelectItem T="int?" Value="@loc.Id">@loc.Name (@loc.Type)</MudSelectItem>
+            }
+        </MudSelect>
+    </MudItem>
 
-            <MudItem xs="12" md="6">
-                <MudSelect T="int?" Label="To Location (Destination)" @bind-Value="Form.ToLocationId" Variant="Variant.Outlined">
-                    <MudSelectItem T="int?" Value="null">Select Destination...</MudSelectItem>
-                    @foreach (var loc in Locations)
-                    {
-                        <MudSelectItem T="int?" Value="@loc.Id">@loc.Name (@loc.Type)</MudSelectItem>
-                    }
-                </MudSelect>
-            </MudItem>
+    <MudItem xs="12" md="6">
+        
+        <MudSelect T="int?" Label="To Location (Destination)" 
+                   @bind-Value="Form.ToLocationId" 
+                   Variant="Variant.Outlined"
+                   AnchorOrigin="Origin.BottomCenter" 
+                   TransformOrigin="Origin.TopCenter" 
+                   Fixed="true">
+            <MudSelectItem T="int?" Value="null">Select Destination...</MudSelectItem>
+            @foreach (var loc in Locations)
+            {
+                <MudSelectItem T="int?" Value="@loc.Id">@loc.Name (@loc.Type)</MudSelectItem>
+            }
+        </MudSelect>
+    </MudItem>
 
             <MudItem xs="12">
                 <MudTextField Label="Notes (optional)" @bind-Value="Form.Notes" Lines="2" Variant="Variant.Outlined" />

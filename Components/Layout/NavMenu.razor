@@ -1,4 +1,19 @@
-﻿@implements IDisposable
+﻿<style>
+    /* CSS WAS GLUING THE BOXES DROPDOWN OPEN, THIS IS AN OVERRIDE UNTIL FURTHER NOTICE */
+    .mud-nav-group-items {
+        display: inherit; 
+    }
+    
+    
+    .mud-nav-group-header {
+        height: auto !important;
+        min-height: 3rem;
+    }
+</style>
+
+
+
+@implements IDisposable
 @inject NavigationManager NavigationManager
 
 <MudNavMenu>
@@ -15,7 +30,7 @@
     <MudNavLink Href="/locations" Icon="@Icons.Material.Filled.LocationOn">Locations</MudNavLink>
     <MudNavLink Href="sales/create" Icon="@Icons.Material.Filled.PointOfSale">Process Sale</MudNavLink>
     
-    <MudNavGroup Title="Boxes" Icon="@Icons.Material.Filled.Archive" Expanded="false">
+    <MudNavGroup Title="Boxes" Icon="@Icons.Material.Filled.Archive" >
         <MudNavLink Href="/inventory/transfer/create" Icon="@Icons.Material.Filled.AddBox">Pack a Box</MudNavLink>
         <MudNavLink Href="/inventory/transfers" Icon="@Icons.Material.Filled.ListAlt">History</MudNavLink>
     </MudNavGroup>

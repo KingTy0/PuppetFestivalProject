@@ -26,28 +26,28 @@
                     <ValidationSummary class="mud-text-error mb-4" role="alert" />
 
                     <MudTextField @bind-Value="Input.Email" 
-                                  Label="Email" 
-                                  Variant="Variant.Outlined" 
-                                  InputType="InputType.Email"
-                                  AutoComplete="username" 
-                                  Required="true" 
-                                  For="@(() => Input.Email)" 
-                                  FullWidth="true" />
+                                For="@(() => Input.Email)"
+                                Name="Input.Email" 
+                                Label="Email" 
+                                Variant="Variant.Outlined" 
+                                InputType="InputType.Email"
+                                Required="true" 
+                                FullWidth="true" />
 
                     <MudTextField @bind-Value="Input.Password" 
-                                  Label="Password" 
-                                  Variant="Variant.Outlined"
-                                  InputType="InputType.Password" 
-                                  AutoComplete="current-password" 
-                                  Required="true" 
-                                  For="@(() => Input.Password)" 
-                                  FullWidth="true" 
-                                  Class="mt-3" />
+                                For="@(() => Input.Password)" 
+                                Name="Input.Password" 
+                                Label="Password" 
+                                Variant="Variant.Outlined"
+                                InputType="InputType.Password" 
+                                Required="true" 
+                                FullWidth="true" 
+                                Class="mt-3" />
 
                     @* Fixed: Added T="bool" to resolve the inference error *@
-                    <MudCheckBox T="bool" @bind-Value="Input.RememberMe" Label="Remember me" Color="Color.Primary" Class="mt-2" />
+                    <MudCheckBox T="bool" @bind-Value="Input.RememberMe" Name="Input.RememberMe" Label="Remember me" Color="Color.Primary" Class="mt-2" />
 
-                    <MudButton Type="Submit" Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Class="mt-4">
+                    <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Class="mt-4">
                         Log in
                     </MudButton>
 
@@ -78,7 +78,7 @@
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
 
-    [SupplyParameterFromForm]
+    [SupplyParameterFromForm( FormName= "login")]
     private InputModel Input { get; set; } = new();
 
     [SupplyParameterFromQuery]
@@ -86,6 +86,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        Input ??= new();
         if (HttpMethods.IsGet(HttpContext.Request.Method))
         {
             await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
