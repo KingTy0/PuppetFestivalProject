@@ -5,99 +5,242 @@
 @rendermode InteractiveServer
 @inject IDbContextFactory<ApplicationDbContext> DbFactory
 
-<PageTitle>Transfer History</PageTitle>
+<PageTitle>Transfer Boxes</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
     <MudStack Direction="Row" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
         <MudText Typo="Typo.h4">Transfer Boxes</MudText>
-        <MudButton Color="Color.Primary" Variant="Variant.Filled" href="/inventory/transfer/create">
-            + New Transfer
+        <MudButton Color="Color.Primary" Variant="Variant.Filled"
+                   href="/inventory/transfer/create"
+                   StartIcon="@Icons.Material.Filled.Add">
+            New Transfer
         </MudButton>
     </MudStack>
 
-    @if (TransferBoxes?.Any() == true)
-    {
-        <MudPaper Elevation="1" Class="pa-4">
-            <Microsoft.AspNetCore.Components.QuickGrid.QuickGrid Items="@TransferBoxes.AsQueryable()" Pagination="pagination" TGridItem="StockTransferBox">
-                
-                <Microsoft.AspNetCore.Components.QuickGrid.TemplateColumn Title="Date" Context="box">
-                    @box.CreatedAt.ToString("MMM dd, yyyy")
-                </Microsoft.AspNetCore.Components.QuickGrid.TemplateColumn>
+    <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6">
 
-                <Microsoft.AspNetCore.Components.QuickGrid.TemplateColumn Title="From → To" Context="box">
-                    <MudChip T="string" Size="Size.Small" Color="Color.Secondary">@box.FromLocation?.Name</MudChip>
-                    <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Size="Size.Small" Class="mx-1" />
-                    <MudChip T="string" Size="Size.Small" Color="Color.Primary">@box.ToLocation?.Name</MudChip>
-                </Microsoft.AspNetCore.Components.QuickGrid.TemplateColumn>
-
-                <Microsoft.AspNetCore.Components.QuickGrid.PropertyColumn Property="@(x => x.Items.Count)" Title="# Items" />
-
-                <Microsoft.AspNetCore.Components.QuickGrid.TemplateColumn Title="Items" Context="box">
-                    @{
-                        var items = box.Items ?? new List<StockTransferBoxItem>();
-                        var itemPreview = string.Join(", ", items.Take(2).Select(i => $"{i.Product?.Name} x{i.Quantity}"));
-                    }
-                    <MudText Typo="Typo.body2">
-                        @itemPreview
-                        @if (items.Count > 2)
-                        {
-                            <span class="mud-text-secondary ml-1">(+@(items.Count - 2) more)</span>
-                        }
-                    </MudText>
-                </Microsoft.AspNetCore.Components.QuickGrid.TemplateColumn>
-
-                <Microsoft.AspNetCore.Components.QuickGrid.TemplateColumn Title="Status" Context="box">
-                    @if (box.IsDelivered)
+        <MudTabPanel Text="Pick Up" Icon="@Icons.Material.Filled.LocationOn"
+                     BadgeData="@PickUpBoxes.Count" BadgeColor="Color.Primary">
+            @if (PickUpBoxes.Any())
+            {
+                <MudGrid>
+                    @foreach (var box in PickUpBoxes)
                     {
-                        <MudChip T="string" Color="Color.Success" Size="Size.Small" Variant="Variant.Text">Delivered</MudChip>
-                    }
-                    else
-                    {
-                        <MudChip T="string" Color="Color.Warning" Size="Size.Small" Variant="Variant.Text">In Transit</MudChip>
-                    }
-                </Microsoft.AspNetCore.Components.QuickGrid.TemplateColumn>
+                        <MudItem xs="12" sm="6" md="4">
+                            <MudCard Elevation="3">
+                                <MudCardContent>
+                                    <MudText Typo="Typo.overline" Color="Color.Secondary">
+                                        @box.CreatedAt.ToString("MMM dd, yyyy")
+                                    </MudText>
+                                    <MudText Typo="Typo.h6" Class="mb-2">Box #@box.Id</MudText>
 
-                <Microsoft.AspNetCore.Components.QuickGrid.TemplateColumn Title="Actions" Context="box">
-                    <MudStack Row="true" Spacing="1">
-                        <MudButton Variant="Variant.Outlined" 
-                                   Color="Color.Primary" 
-                                   Size="Size.Small" 
-                                   Href="@($"/inventory/transfer/details/{box.Id}")">
-                            View
-                        </MudButton>
-                        
-                        @if (!box.IsDelivered)
-                        {
-                            <MudButton Variant="Variant.Filled" 
-                                       Color="Color.Success" 
-                                       Size="Size.Small"
-                                       OnClick="() => DirectConfirm(box.Id)">
-                                Deliver
+                                    <MudStack Direction="Row" AlignItems="AlignItems.Center" Spacing="1" Class="mb-1">
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Secondary"
+                                                 Icon="@Icons.Material.Filled.Warehouse">
+                                            @box.FromLocation?.Name
+                                        </MudChip>
+                                        <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Size="Size.Small" />
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Primary"
+                                                 Icon="@Icons.Material.Filled.Flag">
+                                            @box.ToLocation?.Name
+                                        </MudChip>
+                                    </MudStack>
+
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                        @box.Items.Count item(s)
+                                    </MudText>
+
+                                    @if (!string.IsNullOrWhiteSpace(box.Notes))
+                                    {
+                                        <MudText Typo="Typo.caption" Class="mt-1">@box.Notes</MudText>
+                                    }
+                                </MudCardContent>
+                                <MudCardActions>
+                                    <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+                                               Size="Size.Small"
+                                               Href="@($"/inventory/transfer/details/{box.Id}")">
+                                        View
+                                    </MudButton>
+                                    <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                                               Size="Size.Small" Class="ml-auto"
+                                               StartIcon="@Icons.Material.Filled.LocalShipping"
+                                              OnClick="async () => await PickUpBox(box.Id)">
+                                        Pick Up
+                                    </MudButton>
+                                </MudCardActions>
+                            </MudCard>
+                        </MudItem>
+                    }
+                </MudGrid>
+            }
+            else
+            {
+                <MudAlert Severity="Severity.Info">No boxes waiting for pick up.</MudAlert>
+            }
+        </MudTabPanel>
+
+        <MudTabPanel Text="In Transit" Icon="@Icons.Material.Filled.LocalShipping"
+                     BadgeData="@InTransitBoxes.Count" BadgeColor="Color.Warning">
+            @if (InTransitBoxes.Any())
+            {
+                <MudGrid>
+                    @foreach (var box in InTransitBoxes)
+                    {
+                        <MudItem xs="12" sm="6" md="4">
+                            <MudCard Elevation="3">
+                                <MudCardHeader>
+                                    <CardHeaderContent>
+                                        <MudText Typo="Typo.overline" Color="Color.Secondary">
+                                            @box.CreatedAt.ToString("MMM dd, yyyy")
+                                        </MudText>
+                                        <MudText Typo="Typo.h6">Box #@box.Id</MudText>
+                                    </CardHeaderContent>
+                                    <CardHeaderActions>
+                                        <MudChip T="string" Color="Color.Warning" Size="Size.Small"
+                                                 Variant="Variant.Text">
+                                            In Transit
+                                        </MudChip>
+                                    </CardHeaderActions>
+                                </MudCardHeader>
+                                <MudCardContent>
+                                    <MudStack Direction="Row" AlignItems="AlignItems.Center" Spacing="1" Class="mb-2">
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Secondary">
+                                            @box.FromLocation?.Name
+                                        </MudChip>
+                                        <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Size="Size.Small" />
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Primary">
+                                            @box.ToLocation?.Name
+                                        </MudChip>
+                                    </MudStack>
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                        @box.Items.Count item(s)
+                                    </MudText>
+                                </MudCardContent>
+                                <MudCardActions>
+                                    <MudButton Variant="Variant.Outlined" Color="Color.Default"
+                                               Size="Size.Small"
+                                               Href="@($"/inventory/transfer/details/{box.Id}")">
+                                        View
+                                    </MudButton>
+                                    <MudButton Variant="Variant.Filled" Color="Color.Success"
+                                               Size="Size.Small" Class="ml-auto"
+                                               StartIcon="@Icons.Material.Filled.CheckCircle"
+                                               OnClick="async () => await DeliverBox(box.Id)">
+                                        Confirm Delivery
+                                    </MudButton>
+                                </MudCardActions>
+                            </MudCard>
+                        </MudItem>
+                    }
+                </MudGrid>
+            }
+            else
+            {
+                <MudAlert Severity="Severity.Info">No boxes currently in transit.</MudAlert>
+            }
+        </MudTabPanel>
+
+        <MudTabPanel Text="History" Icon="@Icons.Material.Filled.History">
+            @if (TransferBoxes.Any())
+            {
+                <MudPaper Elevation="0">
+                    <Microsoft.AspNetCore.Components.QuickGrid.QuickGrid
+                        Items="@TransferBoxes.AsQueryable()"
+                        Pagination="pagination"
+                        TGridItem="StockTransferBox">
+
+                        <Microsoft.AspNetCore.Components.QuickGrid.TemplateColumn Title="Date" Context="box">
+                            @box.CreatedAt.ToString("MMM dd, yyyy")
+                        </Microsoft.AspNetCore.Components.QuickGrid.TemplateColumn>
+
+                        <Microsoft.AspNetCore.Components.QuickGrid.TemplateColumn Title="From → To" Context="box">
+                            <MudChip T="string" Size="Size.Small" Color="Color.Secondary">
+                                @box.FromLocation?.Name
+                            </MudChip>
+                            <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Size="Size.Small" Class="mx-1" />
+                            <MudChip T="string" Size="Size.Small" Color="Color.Primary">
+                                @box.ToLocation?.Name
+                            </MudChip>
+                        </Microsoft.AspNetCore.Components.QuickGrid.TemplateColumn>
+
+                        <Microsoft.AspNetCore.Components.QuickGrid.PropertyColumn
+                            Property="@(x => x.Items.Count)" Title="# Items" />
+
+                        <Microsoft.AspNetCore.Components.QuickGrid.TemplateColumn Title="Items" Context="box">
+                            @{
+                                var items = box.Items ?? new List<StockTransferBoxItem>();
+                                var preview = string.Join(", ", items.Take(2)
+                                    .Select(i => $"{i.Product?.Name} x{i.Quantity}"));
+                            }
+                            <MudText Typo="Typo.body2">
+                                @preview
+                                @if (items.Count > 2)
+                                {
+                                    <span class="mud-text-secondary ml-1">(+@(items.Count - 2) more)</span>
+                                }
+                            </MudText>
+                        </Microsoft.AspNetCore.Components.QuickGrid.TemplateColumn>
+
+                        <Microsoft.AspNetCore.Components.QuickGrid.TemplateColumn Title="Status" Context="box">
+                            @if (box.IsDelivered)
+                            {
+                                <MudChip T="string" Color="Color.Success" Size="Size.Small" Variant="Variant.Text">
+                                    Delivered
+                                </MudChip>
+                            }
+                            else if (box.IsPickedUp)
+                            {
+                                <MudChip T="string" Color="Color.Warning" Size="Size.Small" Variant="Variant.Text">
+                                    In Transit
+                                </MudChip>
+                            }
+                            else
+                            {
+                                <MudChip T="string" Color="Color.Default" Size="Size.Small" Variant="Variant.Text">
+                                    Pending
+                                </MudChip>
+                            }
+                        </Microsoft.AspNetCore.Components.QuickGrid.TemplateColumn>
+
+                        <Microsoft.AspNetCore.Components.QuickGrid.TemplateColumn Title="Actions" Context="box">
+                            <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
+                                       Href="@($"/inventory/transfer/details/{box.Id}")">
+                                View
                             </MudButton>
-                        }
-                    </MudStack>
-                </Microsoft.AspNetCore.Components.QuickGrid.TemplateColumn>
+                        </Microsoft.AspNetCore.Components.QuickGrid.TemplateColumn>
 
-            </Microsoft.AspNetCore.Components.QuickGrid.QuickGrid>
+                    </Microsoft.AspNetCore.Components.QuickGrid.QuickGrid>
+                    <div class="mt-4">
+                        <Microsoft.AspNetCore.Components.QuickGrid.Paginator State="pagination" />
+                    </div>
+                </MudPaper>
+            }
+            else
+            {
+                <MudAlert Severity="Severity.Info">
+                    No transfers yet. <MudLink href="/inventory/transfer/create">Create one</MudLink>
+                </MudAlert>
+            }
+        </MudTabPanel>
 
-            <div class="mt-4">
-                <Microsoft.AspNetCore.Components.QuickGrid.Paginator State="pagination" />
-            </div>
-        </MudPaper>
-    }
-    else
-    {
-        <MudAlert Severity="Severity.Info">
-            No transfers yet. <MudLink href="/inventory/transfer/create">Create one</MudLink>
-        </MudAlert>
-    }
+    </MudTabs>
 </MudContainer>
 
 @code {
     private List<StockTransferBox> TransferBoxes = new();
+
+    // Derived lists — no extra DB queries needed
+    private List<StockTransferBox> PickUpBoxes =>
+        TransferBoxes.Where(b => !b.IsPickedUp && !b.IsDelivered).ToList();
+
+    private List<StockTransferBox> InTransitBoxes =>
+        TransferBoxes.Where(b => b.IsPickedUp && !b.IsDelivered).ToList();
+
     Microsoft.AspNetCore.Components.QuickGrid.PaginationState pagination = new() { ItemsPerPage = 20 };
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnInitializedAsync() => await LoadData();
+
+    private async Task LoadData()
     {
         using var db = await DbFactory.CreateDbContextAsync();
         TransferBoxes = await db.StockTransferBoxes
@@ -108,53 +251,59 @@
             .ToListAsync();
     }
 
-    private async Task DirectConfirm(int boxId)
+    private async Task PickUpBox(int boxId)
+    {
+        using var context = await DbFactory.CreateDbContextAsync();
+        var box = await context.StockTransferBoxes.FindAsync(boxId);
+        if (box == null || box.IsPickedUp || box.IsDelivered) return;
+
+        box.IsPickedUp = true;
+        await context.SaveChangesAsync();
+        await LoadData();
+    }
+
+    private async Task DeliverBox(int boxId)
     {
         using var context = await DbFactory.CreateDbContextAsync();
         var box = await context.StockTransferBoxes
             .Include(b => b.Items)
             .FirstOrDefaultAsync(b => b.Id == boxId);
 
-        if (box == null || box.IsDelivered) return;
+        if (box == null || !box.IsPickedUp || box.IsDelivered) return;
 
-        foreach (var item in box.Items) 
+        foreach (var item in box.Items)
         {
             var toStock = await context.ProductLocations
-                .FirstOrDefaultAsync(pl => pl.LocationId == box.ToLocationId && pl.ProductId == item.ProductId);
-            
-            if (toStock == null) 
+                .FirstOrDefaultAsync(pl =>
+                    pl.LocationId == box.ToLocationId &&
+                    pl.ProductId == item.ProductId);
+
+            if (toStock == null)
             {
-                // Only create a record if we are actually adding stock
                 if (item.Quantity > 0)
                 {
-                    context.ProductLocations.Add(new ProductLocation { 
-                        LocationId = box.ToLocationId, 
-                        ProductId = item.ProductId, 
+                    context.ProductLocations.Add(new ProductLocation
+                    {
+                        LocationId = box.ToLocationId,
+                        ProductId = item.ProductId,
                         Quantity = item.Quantity,
                         LastUpdated = DateTime.UtcNow
                     });
                 }
-            } 
-            else 
+            }
+            else
             {
                 toStock.Quantity += item.Quantity;
-                
-                // Cleanup: If for some reason quantity hits 0 or less, remove the record
+
                 if (toStock.Quantity <= 0)
-                {
                     context.ProductLocations.Remove(toStock);
-                }
                 else
-                {
                     toStock.LastUpdated = DateTime.UtcNow;
-                }
             }
         }
 
         box.IsDelivered = true;
         await context.SaveChangesAsync();
-        
-        // Refresh the local list to update the UI
-        await OnInitializedAsync(); 
+        await LoadData();
     }
 }
