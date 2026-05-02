@@ -10,8 +10,15 @@
 
 <PageTitle>Confirm email</PageTitle>
 
-<h1>Confirm email</h1>
-<StatusMessage Message="@statusMessage" />
+<MudContainer MaxWidth="MaxWidth.Small" ObjectPosition="ObjectPosition.Center">
+
+    <MudText Class="my-5">
+        <h1 Style="text-align: center;">Confirm email</h1>
+    </MudText>
+
+    <StatusMessage Message="@statusMessage" />
+
+</MudContainer>
 
 @code {
     private string? statusMessage;

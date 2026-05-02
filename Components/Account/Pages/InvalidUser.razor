@@ -2,6 +2,22 @@
 
 <PageTitle>Invalid user</PageTitle>
 
-<h3>Invalid user</h3>
+<MudContainer MaxWidth="MaxWidth.Small"
+                ObjectPosition="ObjectPosition.Center">
 
-<StatusMessage />
+    <MudText Class="my-5">
+        <h1 Style="text-align: center;">Invalid user</h1>
+    </MudText>
+
+    <StatusMessage />
+
+    <MudButton Href="Account/Login" 
+                Variant="Variant.Filled" 
+                Color="Color.Primary"
+                FullWidth="true"
+                Size="Size.Large"
+                Class="my-5">
+        Back to Login
+    </MudButton>
+
+</MudContainer>
