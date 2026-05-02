@@ -5,84 +5,201 @@
 @inject IDbContextFactory<ApplicationDbContext> DbFactory
 @inject NavigationManager NavigationManager
 @inject IWebHostEnvironment Environment
+@inject ISnackbar Snackbar
 
-<PageTitle>Create Product</PageTitle>
+<PageTitle>@(parentId.HasValue ? "Create Variant" : "Create Product")</PageTitle>
 
-<div class="container mt-4">
-    <h1>Create @(parentId.HasValue ? "Variant" : "New Product")</h1>
-    <hr />
+<MudContainer MaxWidth="MaxWidth.Small" Class="pa-4">
 
-    <EditForm Model="Form" OnValidSubmit="AddProduct" FormName="createProduct" >
+    <MudButton StartIcon="@Icons.Material.Filled.ArrowBack"
+               Variant="Variant.Text"
+               Color="Color.Default"
+               Size="Size.Small"
+               Class="mb-2 text-uppercase"
+               Style="font-size: 0.7rem; letter-spacing: 0.1em; font-weight: 600;"
+               Href="/products">
+        Back
+    </MudButton>
+
+    <MudText Typo="Typo.h4" Style="font-weight: 800; margin-bottom: 24px;">
+        @(parentId.HasValue ? "Create Variant" : "Product Manager")
+    </MudText>
+
+    <EditForm Model="Form" OnValidSubmit="AddProduct" FormName="createProduct">
         <DataAnnotationsValidator />
-        <ValidationSummary class="text-danger" />
-        
+
         <input type="hidden" @bind="Form.ParentProductId" />
-        <InputText @bind-Value="uploadedFileName" style="display:none"/>
 
-        <div class="mb-3">
-            <label class="form-label">Name</label>
-            <InputText @bind-Value="Form.Name" class="form-control" />
-            <ValidationMessage For="() => Form.Name" class="text-danger" />
-        </div>
+        <MudText Typo="Typo.subtitle1" Style="font-weight: 700; margin-bottom: 12px;">
+            Product Details<sup style="color: var(--mud-palette-primary);">*</sup>
+        </MudText>
 
-        <div class="row">
-            <div class="col-md-6 mb-3">
-                <label class="form-label">Price</label>
-                <InputNumber @bind-Value="Form.Price" class="form-control" />
-                <ValidationMessage For="() => Form.Price" class="text-danger" />
-            </div>
-            <div class="col-md-6 mb-3">
-                <label class="form-label">Category</label>
-                <InputSelect @bind-Value="Form.CategoryId" class="form-control">
-                    <option value="0">-- Select Category --</option>
-                    @foreach (var cat in Categories)
-                    {
-                        <option value="@cat.Id">@cat.Name</option>
-                    }
-                </InputSelect>
-            </div>
-        </div>
+        <MudSelect T="int"
+                   @bind-Value="Form.CategoryId"
+                   Placeholder="Select Category"
+                   Variant="Variant.Outlined"
+                   Class="mb-3"
+                   FullWidth="true"
+                   AnchorOrigin="Origin.BottomCenter">
+            <MudSelectItem T="int" Value="0">-- Select Category --</MudSelectItem>
+            @foreach (var cat in Categories)
+            {
+                <MudSelectItem T="int" Value="@cat.Id">@cat.Name</MudSelectItem>
+            }
+        </MudSelect>
 
-       <div class="row">
-    <div class="col-md-6 mb-3">
-        <label class="form-label">Size (Optional)</label>
-        @* Change from <select @bind> to <InputSelect @bind-Value> *@
-        <InputSelect @bind-Value="Form.Size" class="form-control">
+        <MudTextField @bind-Value="Form.Name"
+                      Placeholder="Product Name*"
+                      Variant="Variant.Outlined"
+                      Class="mb-3"
+                      FullWidth="true"
+                      For="() => Form.Name" />
+
+        <MudTextField @bind-Value="Form.Description"
+                      Placeholder="Product Description (optional)"
+                      Variant="Variant.Outlined"
+                      Class="mb-4"
+                      FullWidth="true"
+                      Lines="2" />
+
+        <MudText Typo="Typo.subtitle1" Style="font-weight: 700; margin-bottom: 12px;">
+            Price
+        </MudText>
+
+        <MudNumericField @bind-Value="Form.Price"
+                         Placeholder="Input Price"
+                         Variant="Variant.Outlined"
+                         Class="mb-4"
+                         FullWidth="true"
+                         HideSpinButtons="true"
+                         For="() => Form.Price" />
+
+        <MudText Typo="Typo.subtitle1" Style="font-weight: 700; margin-bottom: 12px;">
+            Select Available Sizes:
+        </MudText>
+
+        <MudGrid Spacing="0" Class="mb-4">
             @foreach (var size in Enum.GetValues<ProductSize>())
             {
-                <option value="@size">@size</option>
+                <MudItem xs="6">
+                    <MudCheckBox T="bool"
+                                 Value="@(Form.Size == size)"
+                                 ValueChanged="@(v => { if (v) Form.Size = size; })"
+                                 Label="@size.ToString()"
+                                 Color="Color.Primary"
+                                 Size="Size.Small"
+                                 Class="mb-1" />
+                </MudItem>
             }
-        </InputSelect>
-    </div>
-    <div class="col-md-6 mb-3">
-        <label class="form-label">Color (Optional)</label>
-        @* Change from <select @bind> to <InputSelect @bind-Value> *@
-        <InputSelect @bind-Value="Form.Color" class="form-control">
+        </MudGrid>
+
+        <MudText Typo="Typo.subtitle1" Style="font-weight: 700; margin-bottom: 12px;">
+            Select Color (Optional):
+        </MudText>
+
+        <MudGrid Spacing="0" Class="mb-4">
             @foreach (var color in Enum.GetValues<ProductColor>())
             {
-                <option value="@color">@color</option>
+                <MudItem xs="6">
+                    <MudCheckBox T="bool"
+                                 Value="@(Form.Color == color)"
+                                 ValueChanged="@(v => { if (v) Form.Color = color; })"
+                                 Label="@color.ToString()"
+                                 Color="Color.Primary"
+                                 Size="Size.Small"
+                                 Class="mb-1" />
+                </MudItem>
             }
-        </InputSelect>
-    </div>
-</div>
+        </MudGrid>
 
-        <div class="mb-3">
-            <label class="form-label">Product Image</label>
-            <InputFile OnChange="LoadFiles" class="form-control" />
+        <MudText Typo="Typo.subtitle1" Style="font-weight: 700; margin-bottom: 12px;">
+            Images
+        </MudText>
+
+        <MudPaper Outlined="true" Class="pa-4 mb-3" Style="border-radius: 8px;">
             @if (!string.IsNullOrEmpty(uploadedFileName))
             {
-                <div class="mt-2">
-                    <img src="/images/products/@uploadedFileName" style="height:100px; width:auto; border-radius:8px;" />
-                    <p class="text-success">Image uploaded successfully!</p>
-                </div>
+                <MudImage Src="@($"/images/products/{uploadedFileName}")"
+                          Height="100"
+                          ObjectFit="ObjectFit.Cover"
+                          Style="border-radius: 8px; margin-bottom: 8px;" />
             }
-            @if (isUploading) { <p class="text-info">Uploading...</p> }
-        </div>
+            else
+            {
+                <MudText Typo="Typo.body2" Color="Color.Default" Style="margin-bottom: 8px; color: #aaa;">
+                    Upload Image Here
+                </MudText>
+            }
 
-        <button type="submit" class="btn btn-primary" disabled="@isUploading">Save Product</button>
-        <a href="/products" class="btn btn-secondary">Cancel</a>
+            @if (isUploading)
+            {
+                <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mb-2" />
+                <MudText Typo="Typo.caption" Color="Color.Info">Uploading...</MudText>
+            }
+
+            @if (!string.IsNullOrEmpty(uploadedFileName))
+            {
+                <MudText Typo="Typo.caption" Color="Color.Success" Class="mb-2">
+                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small" /> Image uploaded successfully!
+                </MudText>
+            }
+        </MudPaper>
+
+        <MudStack Row="true" Spacing="2" Class="mb-6">
+            <label for="filePickerInput">
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           Size="Size.Small"
+                           Style="pointer-events: none; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.08em;"
+                           StartIcon="@Icons.Material.Filled.FolderOpen">
+                    Open File Picker
+                </MudButton>
+            </label>
+            <InputFile id="filePickerInput" OnChange="LoadFiles" style="display:none;" />
+
+            <MudButton Variant="Variant.Outlined"
+                       Color="Color.Default"
+                       Size="Size.Small"
+                       Style="text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.08em;"
+                       Disabled="@(string.IsNullOrEmpty(uploadedFileName) || isUploading)">
+                Upload
+            </MudButton>
+
+            <MudButton Variant="Variant.Outlined"
+                       Color="Color.Default"
+                       Size="Size.Small"
+                       Style="text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.08em;"
+                       OnClick="ClearImage"
+                       Disabled="@string.IsNullOrEmpty(uploadedFileName)">
+                Clear
+            </MudButton>
+        </MudStack>
+
+        <ValidationSummary class="text-danger" />
+
+        <MudDivider Class="mb-4" />
+        <MudStack Row="true" Justify="Justify.SpaceBetween">
+            <MudButton Variant="Variant.Outlined"
+                       Color="Color.Default"
+                       Size="Size.Large"
+                       Style="text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.1em; min-width: 120px;"
+                       Href="/products">
+                Cancel
+            </MudButton>
+
+            <MudButton ButtonType="ButtonType.Submit"
+                       Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       Size="Size.Large"
+                       Style="text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.1em; min-width: 120px;"
+                       Disabled="@isUploading"
+                       EndIcon="@Icons.Material.Filled.Check">
+                Confirm
+            </MudButton>
+        </MudStack>
+
     </EditForm>
-</div>
+</MudContainer>
 
 @code {
     [SupplyParameterFromForm]
@@ -119,64 +236,70 @@
         if (file != null)
         {
             isUploading = true;
-            // Generate name once
+            StateHasChanged();
+
             var newName = Guid.NewGuid().ToString() + Path.GetExtension(file.Name);
-            
-            // LOCK IT INTO THE FORM IMMEDIATELY
             Form.ImageFileName = newName;
-            uploadedFileName = newName; 
+            uploadedFileName = newName;
 
             var path = Path.Combine(Environment.WebRootPath, "images", "products", newName);
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
 
             await using FileStream fs = new(path, FileMode.Create);
             await file.OpenReadStream(maxAllowedSize: 1024 * 1024 * 10).CopyToAsync(fs);
-            
+
             isUploading = false;
             StateHasChanged();
         }
     }
 
-   private async Task AddProduct()
-{
-    if (Form.CategoryId == 0) return;
-
-    using var context = await DbFactory.CreateDbContextAsync();
-    int? finalImageId = null;
-
-    var fileNameToUse = Form.ImageFileName ?? uploadedFileName;
-
-    // Use the local variable that is now 'synced' by the hidden InputText
-    if (!string.IsNullOrEmpty(uploadedFileName))
+    private void ClearImage()
     {
-        var newImg = new PuppetFestAPP.Web.Models.Image 
-        { 
-            FileName = uploadedFileName,
-            AltText = Form.Name 
-        };
-        
-        context.Images.Add(newImg); 
-        await context.SaveChangesAsync(); 
-        finalImageId = newImg.Id; 
+        uploadedFileName = null;
+        Form.ImageFileName = null;
     }
 
-    var newProduct = new Product
+    private async Task AddProduct()
     {
-        Name = Form.Name,
-        Price = Form.Price,
-        CategoryId = Form.CategoryId,
-        ParentProductId = Form.ParentProductId ?? parentId, 
-        Size = Form.Size ?? ProductSize.NA,
-        Color = Form.Color ?? ProductColor.NA,
-        DateAdded = DateTime.Now,
-        IsActive = true,
-        Description = Form.Description ?? "",
-        ImageId = finalImageId 
-    };
+        if (Form.CategoryId == 0)
+        {
+            Snackbar.Add("Please select a category.", Severity.Warning);
+            return;
+        }
 
-    context.Products.Add(newProduct);
-    await context.SaveChangesAsync();
-    
-    NavigationManager.NavigateTo("/products");
-}
+        using var context = await DbFactory.CreateDbContextAsync();
+        int? finalImageId = null;
+
+        if (!string.IsNullOrEmpty(uploadedFileName))
+        {
+            var newImg = new PuppetFestAPP.Web.Models.Image
+            {
+                FileName = uploadedFileName,
+                AltText = Form.Name
+            };
+            context.Images.Add(newImg);
+            await context.SaveChangesAsync();
+            finalImageId = newImg.Id;
+        }
+
+        var newProduct = new Product
+        {
+            Name = Form.Name,
+            Price = Form.Price,
+            CategoryId = Form.CategoryId,
+            ParentProductId = Form.ParentProductId ?? parentId,
+            Size = Form.Size ?? ProductSize.NA,
+            Color = Form.Color ?? ProductColor.NA,
+            DateAdded = DateTime.Now,
+            IsActive = true,
+            Description = Form.Description ?? "",
+            ImageId = finalImageId
+        };
+
+        context.Products.Add(newProduct);
+        await context.SaveChangesAsync();
+
+        Snackbar.Add("Product saved successfully!", Severity.Success);
+        NavigationManager.NavigateTo("/products");
+    }
 }
