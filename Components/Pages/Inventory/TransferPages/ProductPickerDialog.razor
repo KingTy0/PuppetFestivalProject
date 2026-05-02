@@ -1,0 +1,109 @@
+@using PuppetFestAPP.Web.Data
+@using PuppetFestAPP.Web.Models
+@rendermode InteractiveServer
+@inject ISnackbar Snackbar
+
+<MudDialogContent Class="pa-0">
+
+    @* Sticky header with search + filter *@
+    <MudPaper Elevation="0" Class="pa-3 pb-2" Style="position:sticky;top:0;z-index:10;border-bottom:1px solid var(--mud-palette-divider)">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true"
+                   Disabled="@(!Items.Any())"
+                   OnClick="() => MudDialog.Close()"
+                   Class="mb-3">
+            CONFIRM SELECTION
+        </MudButton>
+
+        <MudStack Row="true" Spacing="2">
+            <MudTextField @bind-Value="searchString" Placeholder="Search for an item"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                          Immediate="true" Variant="Variant.Outlined" Margin="Margin.Dense"
+                          Style="flex:1" />
+            <MudButton Variant="Variant.Outlined" EndIcon="@Icons.Material.Filled.FilterList"
+                       Size="Size.Small" Style="white-space:nowrap">
+                Filter
+            </MudButton>
+        </MudStack>
+    </MudPaper>
+
+    @* Scrollable product list *@
+    <div style="max-height: 55vh; overflow-y: auto;">
+        @foreach (var inv in FilteredInventory)
+        {
+            var existing = Items.FirstOrDefault(i => i.ProductId == inv.ProductId);
+            var isAdded = existing != null;
+            var currentQtyInBox = existing?.Quantity ?? 0;
+            var available = inv.Quantity - currentQtyInBox;
+
+            <div class="d-flex align-center px-3 py-3"
+                 style="border-bottom:1px solid var(--mud-palette-divider); cursor:pointer; @(isAdded ? "background:rgba(93,30,33,0.04)" : "")"
+                 @onclick="() => ToggleItem(inv)">
+
+                @* Expand chevron placeholder (for future qty editing) *@
+                <MudIcon Icon="@Icons.Material.Filled.ChevronRight"
+                         Style="@(isAdded ? "color:var(--mud-palette-primary);transform:rotate(90deg);transition:transform .2s" : "color:var(--mud-palette-lines-default);transition:transform .2s")"
+                         Class="mr-2" Size="Size.Small" />
+
+                @* Thumbnail *@
+                <MudAvatar Variant="Variant.Outlined" Size="Size.Medium" Class="mr-3"
+                           Style="border-color:var(--mud-palette-divider)">
+                    <MudIcon Icon="@Icons.Material.Filled.Inventory2" Size="Size.Small" />
+                </MudAvatar>
+
+                @* Name *@
+                <MudText Typo="Typo.body2" Style="flex:1">@inv.Product?.Name</MudText>
+
+                @* Badge *@
+                @if (isAdded)
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Success"
+                             Style="font-size:11px;height:22px">Added</MudChip>
+                }
+                else if (available <= 0)
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Error">Out of stock</MudText>
+                }
+                else
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Unadded</MudText>
+                }
+            </div>
+        }
+
+        @if (!FilteredInventory.Any())
+        {
+            <MudText Typo="Typo.body2" Class="pa-6 text-center" Color="Color.Secondary">
+                No products found.
+            </MudText>
+        }
+    </div>
+
+</MudDialogContent>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public List<ProductLocation> Inventory { get; set; } = new();
+    [Parameter] public List<TransferBoxItemModel> Items { get; set; } = new();
+
+    private string searchString = "";
+
+    private IEnumerable<ProductLocation> FilteredInventory =>
+        Inventory.Where(x => string.IsNullOrWhiteSpace(searchString) ||
+                             (x.Product?.Name.Contains(searchString, StringComparison.OrdinalIgnoreCase) ?? false));
+
+    private void ToggleItem(ProductLocation inv)
+    {
+        var existing = Items.FirstOrDefault(i => i.ProductId == inv.ProductId);
+        if (existing != null)
+        {
+            Items.Remove(existing);
+        }
+        else
+        {
+            var available = inv.Quantity;
+            if (available <= 0) return;
+            Items.Add(new TransferBoxItemModel { ProductId = inv.ProductId, Quantity = 1 });
+        }
+        StateHasChanged();
+    }
+}

@@ -1,221 +1,255 @@
 @page "/inventory/transfer/create"
 @using Microsoft.EntityFrameworkCore
 @using PuppetFestAPP.Web.Data
+@using PuppetFestAPP.Web.Models
 @rendermode InteractiveServer
 @inject IDbContextFactory<ApplicationDbContext> DbFactory
 @inject NavigationManager Navigation
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
 
-<style>
-    /* 1. Ensure the popover container isn't 0px tall */
-    .mud-popover-content {
-        min-height: 100px !important;
-        min-width: 200px !important;
-        background-color: white !important;
-        color: black !important;
-        box-shadow: 0px 10px 30px rgba(0,0,0,0.5) !important;
-        display: block !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-        z-index: 999999 !important;
+<PageTitle>Pack a Box</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="mt-6">
+
+    @* --- STEP 1 --- *@
+    @if (currentStep == 1)
+    {
+        <MudText Typo="Typo.h4" Class="mb-2">Pack a Box</MudText>
+        <MudText Typo="Typo.body2" Class="mb-6">Create a box to deliver merchandise to a different location.</MudText>
+
+        <MudStack Spacing="4">
+            <MudTextField Label="Box Title" @bind-Value="Form.BoxTitle" Variant="Variant.Outlined" Placeholder="e.g. Box #1" />
+
+            <MudSelect T="int?" Label="From Location"
+                       Value="Form.FromLocationId"
+                       ValueChanged="OnFromLocationChanged"
+                       Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter">
+                <MudSelectItem T="int?" Value="null">Select Source...</MudSelectItem>
+                @foreach (var loc in Locations)
+                {
+                    <MudSelectItem T="int?" Value="@loc.Id">@loc.Name</MudSelectItem>
+                }
+            </MudSelect>
+
+            <MudSelect T="int?" Label="To Location"
+                       @bind-Value="Form.ToLocationId"
+                       Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter">
+                <MudSelectItem T="int?" Value="null">Select Destination...</MudSelectItem>
+                @foreach (var loc in Locations)
+                {
+                    <MudSelectItem T="int?" Value="@loc.Id">@loc.Name</MudSelectItem>
+                }
+            </MudSelect>
+
+            <MudSwitch @bind-Value="Form.IsUrgent" Label="Urgent" Color="Color.Error" />
+            <MudText Typo="Typo.caption" Class="mt-n4">Mark this box as urgent to expedite delivery.</MudText>
+
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+                       FullWidth="true" OnClick="() => currentStep = 2"
+                       Disabled="@(Form.FromLocationId == null || Form.ToLocationId == null || Form.FromLocationId == Form.ToLocationId)">
+                CONTINUE →
+            </MudButton>
+        </MudStack>
     }
 
-    /* 2. Fix the .NET 9 Layout 'Clip' */
-    main, .mud-main-content, .mud-container {
-        overflow: visible !important;
-    }
+    @* --- STEP 2 --- *@
+    else if (currentStep == 2)
+    {
+        <MudLink OnClick="() => currentStep = 1" Class="mb-4 d-flex align-center" Style="cursor:pointer">
+            <MudIcon Icon="@Icons.Material.Filled.ArrowBack" Size="Size.Small" Class="mr-1" /> BACK
+        </MudLink>
+        <MudText Typo="Typo.h4" Class="mb-2">Pack a Box</MudText>
 
-    /* 3. Make the actual list items visible */
-    .mud-list-item {
-        display: flex !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-    }
-</style>
+        <MudPaper Elevation="0" Class="pa-4 mb-4 mud-background-gray rounded-lg">
+            <MudText Typo="Typo.subtitle2" Class="mb-1">@Form.BoxTitle</MudText>
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Filled.Store">
+                    @GetLocationName(Form.FromLocationId)
+                </MudChip>
+                <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Size="Size.Small" />
+                <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Filled.LocationOn">
+                    @GetLocationName(Form.ToLocationId)
+                </MudChip>
+            </MudStack>
+        </MudPaper>
 
-<PageTitle>Create Transfer Box</PageTitle>
+        <MudText Typo="Typo.h6" Class="mb-2">Box Contents</MudText>
 
-<MudContainer MaxWidth="MaxWidth.Large" Class="mt-6">
-    <MudText Typo="Typo.h4" Class="mb-4">Create Transfer Box</MudText>
+        <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Add"
+                   FullWidth="true" Color="Color.Dark" Class="py-3 mb-4"
+                   OnClick="OpenPicker">
+            ADD PRODUCTS +
+        </MudButton>
 
-    <EditForm Model="Form" OnValidSubmit="CreateTransfer">
-        <DataAnnotationsValidator />
-     
-        <MudGrid>
-            @* ── Locations Section ── *@
-            <MudItem xs="12" md="6">
-        
-        <MudSelect T="int?" Label="From Location (Source)" 
-                   Value="Form.FromLocationId" 
-                   ValueChanged="OnFromLocationChanged" 
-                   ValueExpression="() => Form.FromLocationId" 
-                   Variant="Variant.Outlined" 
-                   AnchorOrigin="Origin.BottomCenter" 
-                   TransformOrigin="Origin.TopCenter" 
-                   Fixed="true"> 
-            <MudSelectItem T="int?" Value="null">Select Source...</MudSelectItem>
-            @foreach (var loc in Locations)
+        <MudStack Spacing="2">
+            @foreach (var item in Form.Items.ToList())
             {
-                <MudSelectItem T="int?" Value="@loc.Id">@loc.Name (@loc.Type)</MudSelectItem>
-            }
-        </MudSelect>
-    </MudItem>
-
-    <MudItem xs="12" md="6">
-        
-        <MudSelect T="int?" Label="To Location (Destination)" 
-                   @bind-Value="Form.ToLocationId" 
-                   Variant="Variant.Outlined"
-                   AnchorOrigin="Origin.BottomCenter" 
-                   TransformOrigin="Origin.TopCenter" 
-                   Fixed="true">
-            <MudSelectItem T="int?" Value="null">Select Destination...</MudSelectItem>
-            @foreach (var loc in Locations)
-            {
-                <MudSelectItem T="int?" Value="@loc.Id">@loc.Name (@loc.Type)</MudSelectItem>
-            }
-        </MudSelect>
-    </MudItem>
-
-            <MudItem xs="12">
-                <MudTextField Label="Notes (optional)" @bind-Value="Form.Notes" Lines="2" Variant="Variant.Outlined" />
-            </MudItem>
-
-            @* ── Current Box Items ── *@
-            @if (Form.Items.Any())
-            {
-                <MudItem xs="12">
-                    <MudText Typo="Typo.h6" Class="mt-4">Box Items</MudText>
-                    <MudTable Items="Form.Items" Dense="true" Hover="true">
-                        <HeaderContent>
-                            <MudTh>Product</MudTh>
-                            <MudTh>Quantity</MudTh>
-                            <MudTh></MudTh>
-                        </HeaderContent>
-                        <RowTemplate Context="item">
-                            <MudTd>@GetProductName(item.ProductId)</MudTd>
-                            <MudTd>@item.Quantity</MudTd>
-                            <MudTd>
-                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="() => Form.Items.Remove(item)" />
-                            </MudTd>
-                        </RowTemplate>
-                    </MudTable>
-                </MudItem>
-            }
-
-            @* ── Add Product Section ── *@
-            <MudItem xs="12">
-                <MudPaper Elevation="1" Class="pa-4 mt-4">
-                    <MudText Typo="Typo.h6">Add Product</MudText>
-                    <MudGrid>
-                        <MudItem xs="12" md="8">
-                            <MudSelect T="int?" Label="Select Product" Value="selectedProductId" ValueChanged="OnProductSelected" ValueExpression="() => selectedProductId">
-                                <MudSelectItem T="int?" Value="null">Select Product...</MudSelectItem>
-                                @foreach (var prod in Products)
-                                {
-                                    <MudSelectItem T="int?" Value="@prod.Id">@prod.Name @(prod.Size != ProductSize.NA ? $"({prod.Size})" : "")</MudSelectItem>
-                                }
-                            </MudSelect>
-                            @if (selectedProductId > 0)
-                            {
-                                <MudText Typo="Typo.caption" Color="Color.Primary">In stock here: @maxAvailable</MudText>
-                            }
-                        </MudItem>
-                        <MudItem xs="12" md="4">
-                            <MudNumericField @bind-Value="selectedQuantity" Label="Quantity" Min="1" Max="maxAvailable" />
-                        </MudItem>
-                    </MudGrid>
-                    <MudButton Variant="Variant.Outlined" Color="Color.Secondary" Class="mt-3" 
-                               OnClick="AddItem" 
-                               Disabled="@(selectedProductId == null || selectedQuantity <= 0 || selectedQuantity > maxAvailable)">
-                        Add to Box
-                    </MudButton>
+                <MudPaper Class="pa-3 d-flex justify-space-between align-center" Elevation="1">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                        <MudAvatar Variant="Variant.Outlined" Size="Size.Small"
+                                   Style="border-color:var(--mud-palette-divider)">
+                            <MudIcon Icon="@Icons.Material.Filled.Inventory2" Size="Size.Small" />
+                        </MudAvatar>
+                        <div>
+                            <MudText Typo="Typo.body2">@GetProductName(item.ProductId)</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Qty: @item.Quantity</MudText>
+                        </div>
+                    </MudStack>
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error"
+                                   Size="Size.Small" OnClick="() => RemoveItem(item)" />
                 </MudPaper>
-            </MudItem>
+            }
 
-            @* ── Form Actions ── *@
-            <MudItem xs="12" Class="mt-6">
-                <MudStack Row="true" Spacing="2">
-                    <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Disabled="@(!Form.IsValid())">
-                        Create Transfer Box
-                    </MudButton>
-                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" Href="/inventory">Cancel</MudButton>
-                </MudStack>
-            </MudItem>
-        </MudGrid>
-    </EditForm>
+            @if (!Form.Items.Any())
+            {
+                <MudAlert Severity="Severity.Normal" Variant="Variant.Outlined" Class="py-8 text-center">
+                    No products added.<br />Click "Add Products" to add products to this box.
+                </MudAlert>
+            }
+        </MudStack>
+
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+                   FullWidth="true" Class="mt-6"
+                   Disabled="@(!Form.Items.Any())"
+                   OnClick="OpenConfirmDialog">
+            CREATE BOX →
+        </MudButton>
+    }
+
+    @* --- STEP 3: Confirm --- *@
+    else if (currentStep == 3)
+    {
+        <MudLink OnClick="() => currentStep = 2" Class="mb-4 d-flex align-center" Style="cursor:pointer">
+            <MudIcon Icon="@Icons.Material.Filled.ArrowBack" Size="Size.Small" Class="mr-1" /> BACK
+        </MudLink>
+        <MudText Typo="Typo.h4" Class="mb-6">Confirm Box Details</MudText>
+
+        <MudPaper Elevation="0" Class="pa-4 mb-4 mud-background-gray rounded-lg">
+            <MudText Typo="Typo.caption" Color="Color.Secondary">Box Title</MudText>
+            <MudText Typo="Typo.subtitle1" Class="mb-3">@Form.BoxTitle</MudText>
+
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Filled.Store">
+                    @GetLocationName(Form.FromLocationId)
+                </MudChip>
+                <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Size="Size.Small" />
+                <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Filled.LocationOn">
+                    @GetLocationName(Form.ToLocationId)
+                </MudChip>
+            </MudStack>
+
+            @if (Form.IsUrgent)
+            {
+                <MudChip T="string" Size="Size.Small" Color="Color.Error" Icon="@Icons.Material.Filled.PriorityHigh"
+                         Class="mt-2">
+                    Urgent
+                </MudChip>
+            }
+        </MudPaper>
+
+        <MudText Typo="Typo.subtitle2" Class="mb-2">
+            Items (@Form.Items.Count)
+        </MudText>
+
+        <MudStack Spacing="1" Class="mb-6">
+            @foreach (var item in Form.Items)
+            {
+                <MudPaper Class="pa-3 d-flex justify-space-between align-center" Elevation="1">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                        <MudAvatar Variant="Variant.Outlined" Size="Size.Small"
+                                   Style="border-color:var(--mud-palette-divider)">
+                            <MudIcon Icon="@Icons.Material.Filled.Inventory2" Size="Size.Small" />
+                        </MudAvatar>
+                        <MudText Typo="Typo.body2">@GetProductName(item.ProductId)</MudText>
+                    </MudStack>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">x@item.Quantity</MudText>
+                </MudPaper>
+            }
+        </MudStack>
+
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+                   FullWidth="true" OnClick="CreateTransfer"
+                   Disabled="@isSubmitting">
+            @if (isSubmitting)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                <span>CREATING...</span>
+            }
+            else
+            {
+                <span>CONFIRM</span>
+            }
+        </MudButton>
+    }
+
 </MudContainer>
 
 @code {
-    public TransferBoxFormModel Form { get; set; } = new();
-    private int? selectedProductId;
-    private int selectedQuantity;
+    private int currentStep = 1;
+    private bool isSubmitting = false;
     private List<Location> Locations = new();
-    
-    // NEW: Computed Property. This calculates the live stock every time the page refreshes. Used so when they remove
-    //Item from box, the count within the dropdown refreshes INSTANTLY
-    private int maxAvailable => selectedProductId.HasValue ? GetAvailableStock(selectedProductId.Value) : 0;
+    private List<ProductLocation> AvailableInventory = new();
 
-    private List<ProductLocation> AvailableInventory = new(); 
-    private List<Product> Products => AvailableInventory.Select(ai => ai.Product!).ToList();
+    public TransferBoxFormModel Form { get; set; } = new();
 
     protected override async Task OnInitializedAsync()
     {
         using var context = await DbFactory.CreateDbContextAsync();
         Locations = await context.Locations.Where(l => l.IsActive).ToListAsync();
+        Form.BoxTitle = "Box #" + (await context.StockTransferBoxes.CountAsync() + 1);
     }
 
-    private async Task OnFromLocationChanged(int? newLocationId)
+    private async Task OpenPicker()
     {
-        Form.FromLocationId = newLocationId;
-        Form.Items.Clear();
-        Form.ToLocationId = null; 
-        selectedProductId = null;
-
-        if (newLocationId.HasValue && newLocationId > 0)
+        // Safety reload in case state got out of sync (fixes double-click bug)
+        if (!AvailableInventory.Any() && Form.FromLocationId.HasValue)
         {
             using var context = await DbFactory.CreateDbContextAsync();
             AvailableInventory = await context.ProductLocations
-                .Where(pl => pl.LocationId == newLocationId && pl.Quantity > 0)
                 .Include(pl => pl.Product)
+                .Where(pl => pl.LocationId == Form.FromLocationId && pl.Quantity > 0)
                 .ToListAsync();
         }
-        else
+
+        var parameters = new DialogParameters
         {
-            AvailableInventory.Clear();
-        }
-    }
+            { "Inventory", AvailableInventory },
+            { "Items", Form.Items }
+        };
 
-    private void OnProductSelected(int? productId)
-    {
-        selectedProductId = productId;
-        selectedQuantity = 1; 
-      
-    }
-
-    private int GetAvailableStock(int productId)
-    {
-        var totalInLocation = AvailableInventory.FirstOrDefault(p => p.ProductId == productId)?.Quantity ?? 0;
-        var alreadyInBox = Form.Items.Where(i => i.ProductId == productId).Sum(i => i.Quantity);
-        return totalInLocation - alreadyInBox;
-    }
-
-    private void AddItem()
-    {
-        if (selectedProductId.HasValue && selectedQuantity > 0 && selectedQuantity <= maxAvailable)
+        var options = new DialogOptions
         {
-            var existingItem = Form.Items.FirstOrDefault(i => i.ProductId == selectedProductId);
-            if (existingItem != null)
-            {
-                existingItem.Quantity += selectedQuantity;
-            }
-            else
-            {
-                Form.Items.Add(new TransferBoxItemModel { ProductId = selectedProductId.Value, Quantity = selectedQuantity });
-            }
+            FullWidth = true,
+            CloseButton = false,
+            MaxWidth = MaxWidth.Small
+        };
 
-            selectedQuantity = 1; 
-            StateHasChanged(); 
+        await DialogService.ShowAsync<ProductPickerDialog>("Add Products to Box", parameters, options);
+        StateHasChanged();
+    }
+
+    private void OpenConfirmDialog()
+    {
+        currentStep = 3;
+    }
+
+    private async Task OnFromLocationChanged(int? newId)
+    {
+        Form.FromLocationId = newId;
+        Form.Items.Clear();
+        AvailableInventory.Clear();
+
+        if (newId.HasValue)
+        {
+            using var context = await DbFactory.CreateDbContextAsync();
+            AvailableInventory = await context.ProductLocations
+                .Include(pl => pl.Product)
+                .Where(pl => pl.LocationId == newId && pl.Quantity > 0)
+                .ToListAsync();
         }
+
+        await InvokeAsync(StateHasChanged);
     }
 
     private void RemoveItem(TransferBoxItemModel item)
@@ -224,44 +258,53 @@
         StateHasChanged();
     }
 
-    private string GetProductName(int productId) => Products.FirstOrDefault(p => p.Id == productId)?.Name ?? "Selected Item";
+    private string GetLocationName(int? id) =>
+        Locations.FirstOrDefault(l => l.Id == id)?.Name ?? "Unknown";
+
+    private string GetProductName(int id) =>
+        AvailableInventory.FirstOrDefault(i => i.ProductId == id)?.Product?.Name ?? "Item";
 
     private async Task CreateTransfer()
     {
         if (!Form.FromLocationId.HasValue || !Form.ToLocationId.HasValue || !Form.Items.Any()) return;
 
+        isSubmitting = true;
+        StateHasChanged();
+
         using var context = await DbFactory.CreateDbContextAsync();
         using var transaction = await context.Database.BeginTransactionAsync();
         try
         {
-            var transferBox = new StockTransferBox { 
-                FromLocationId = Form.FromLocationId.Value, 
-                ToLocationId = Form.ToLocationId.Value, 
-                Notes = Form.Notes,
-                CreatedAt = DateTime.UtcNow, 
+            var transferBox = new StockTransferBox
+            {
+                FromLocationId = Form.FromLocationId.Value,
+                ToLocationId = Form.ToLocationId.Value,
+                CreatedAt = DateTime.UtcNow,
                 IsDelivered = false
             };
-            
+
             context.StockTransferBoxes.Add(transferBox);
             await context.SaveChangesAsync();
 
             foreach (var item in Form.Items)
             {
-                context.StockTransferBoxItems.Add(new StockTransferBoxItem { 
-                    StockTransferBoxId = transferBox.Id, 
-                    ProductId = item.ProductId, 
-                    Quantity = item.Quantity 
+                context.StockTransferBoxItems.Add(new StockTransferBoxItem
+                {
+                    StockTransferBoxId = transferBox.Id,
+                    ProductId = item.ProductId,
+                    Quantity = item.Quantity
                 });
 
                 var fromStock = await context.ProductLocations
-                    .FirstOrDefaultAsync(pl => pl.ProductId == item.ProductId && pl.LocationId == Form.FromLocationId.Value);
-                
+                    .FirstOrDefaultAsync(pl => pl.ProductId == item.ProductId
+                                            && pl.LocationId == Form.FromLocationId.Value);
                 if (fromStock != null)
                 {
                     fromStock.Quantity -= item.Quantity;
                     fromStock.LastUpdated = DateTime.UtcNow;
                 }
             }
+
             await context.SaveChangesAsync();
             await transaction.CommitAsync();
             Navigation.NavigateTo("/inventory/transfers");
@@ -269,22 +312,19 @@
         catch
         {
             await transaction.RollbackAsync();
-            throw;
+            isSubmitting = false;
+            Snackbar.Add("Failed to create transfer. Please try again.", Severity.Error);
+            currentStep = 2;
+            StateHasChanged();
         }
     }
 
     public class TransferBoxFormModel
     {
+        public string BoxTitle { get; set; } = "";
         public int? FromLocationId { get; set; }
         public int? ToLocationId { get; set; }
-        public string? Notes { get; set; }
+        public bool IsUrgent { get; set; }
         public List<TransferBoxItemModel> Items { get; set; } = new();
-        public bool IsValid() => FromLocationId.HasValue && ToLocationId.HasValue && Items.Any() && FromLocationId != ToLocationId;
-    }
-
-    public class TransferBoxItemModel
-    {
-        public int ProductId { get; set; }
-        public int Quantity { get; set; }
     }
 }
