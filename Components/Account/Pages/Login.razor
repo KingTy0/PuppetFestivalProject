@@ -3,6 +3,7 @@
 @using Microsoft.AspNetCore.Authentication
 @using Microsoft.AspNetCore.Identity
 @using PuppetFestAPP.Web.Data
+
 @inject SignInManager<ApplicationUser> SignInManager
 @inject ILogger<Login> Logger
 @inject NavigationManager NavigationManager
@@ -11,17 +12,25 @@
 <PageTitle>Log in</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.Medium" Class="pa-4" Style="margin-top:1.5rem;">
-    <MudText Typo="Typo.h4" Class="mb-4">Log in</MudText>
+    <MudImage Src="..\..\..\Images\logos\logo.svg" 
+                Alt="Backstage Logo" 
+                Class="mb-4" 
+                Style="max-width: 50%; height: auto;"
+                ObjectPosition="ObjectPosition.Center" />
+    
+    
     
     <MudGrid GutterSize="3">
         <MudItem xs="12" lg="6">
             <MudPaper Elevation="1" Class="pa-4">
                 <StatusMessage Message="@errorMessage" />
+
+                <MudText Align="Align.Center" GutterBottom="true" Style="font-family: var(--title-font);">
+                    <h1>Log in to Backstage</h1>
+                </MudText>
                 
                 <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">
                     <DataAnnotationsValidator />
-                    <MudText Typo="Typo.h6">Use a local account to log in.</MudText>
-                    <MudDivider Class="my-3" />
                     
                     <ValidationSummary class="mud-text-error mb-4" role="alert" />
 
@@ -47,28 +56,28 @@
                     @* Fixed: Added T="bool" to resolve the inference error *@
                     <MudCheckBox T="bool" @bind-Value="Input.RememberMe" Name="Input.RememberMe" Label="Remember me" Color="Color.Primary" Class="mt-2" />
 
-                    <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Class="mt-4">
+                    <MudButton ButtonType="ButtonType.Submit" 
+                                Variant="Variant.Filled" 
+                                Color="Color.Primary" 
+                                FullWidth="true" 
+                                Size="Size.Medium" 
+                                Class="mt-4">
                         Log in
                     </MudButton>
 
-                    <div class="mt-4">
-                        <MudLink href="Account/ForgotPassword" Typo="Typo.body2">Forgot your password?</MudLink><br />
-                        <MudLink href="@(NavigationManager.GetUriWithQueryParameters("Account/Register", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))" Typo="Typo.body2">
-                            Register as a new user
-                        </MudLink><br />
-                        <MudLink href="Account/ResendEmailConfirmation" Typo="Typo.body2">Resend email confirmation</MudLink>
-                    </div>
+                    <MudButton href="Account/ForgotPassword" 
+                                Variant="Variant.Text" 
+                                Color="Color.Primary" 
+                                FullWidth="true" 
+                                Size="Size.Medium" 
+                                Class="mt-4">
+                        Forgot Password?
+                    </MudButton>
+
                 </EditForm>
             </MudPaper>
         </MudItem>
 
-        <MudItem xs="12" lg="6">
-            <MudPaper Elevation="1" Class="pa-4">
-                <MudText Typo="Typo.h6">Use another service to log in.</MudText>
-                <MudDivider Class="my-3" />
-                <ExternalLoginPicker />
-            </MudPaper>
-        </MudItem>
     </MudGrid>
 </MudContainer>
 
