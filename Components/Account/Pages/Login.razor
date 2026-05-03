@@ -24,7 +24,6 @@
     <MudPaper Elevation="2" 
             MaxWidth="MaxWidth.Medium"
             Class="pa-4 my-5">
-        <StatusMessage Message="@errorMessage" />
 
         <MudText Class="my-5">
             <h1 Style="text-align: center;">Log in</h1>
@@ -32,13 +31,22 @@
         
         <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">
             <DataAnnotationsValidator />
-            
-            <ValidationSummary class="mud-text-error mb-4" role="alert" />
+
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <MudAlert Severity="Severity.Error" 
+                        Variant="Variant.Outlined"
+                        Class="my-5">
+                    <StatusMessage Message="@errorMessage" />
+                </MudAlert>
+            }
 
             <MudTextField @bind-Value="Input.Email" 
                         For="@(() => Input.Email)"
                         Name="Input.Email" 
-                        Label="Email" 
+                        ShrinkLabel 
+		                Label="Email"
+                        Placeholder="Enter your email"
                         Variant="Variant.Outlined" 
                         InputType="InputType.Email"
                         Required="true" 
@@ -47,8 +55,10 @@
 
             <MudTextField @bind-Value="Input.Password" 
                         For="@(() => Input.Password)" 
-                        Name="Input.Password" 
-                        Label="Password" 
+                        Name="Input.Password"   
+                        ShrinkLabel 
+		                Label="Password"
+                        Placeholder="Enter your password"
                         Variant="Variant.Outlined"
                         InputType="InputType.Password" 
                         Required="true" 
@@ -67,7 +77,7 @@
                         Variant="Variant.Filled" 
                         Color="Color.Primary" 
                         FullWidth="true" 
-                        Size="Size.Medium" 
+                        Size="Size.Large" 
                         Class="my-2">
                 Log in
             </MudButton>
@@ -76,7 +86,7 @@
                         Variant="Variant.Text" 
                         Color="Color.Primary" 
                         FullWidth="true" 
-                        Size="Size.Medium" 
+                        Size="Size.Large" 
                         Class="my-2">
                 Forgot Password?
             </MudButton>
@@ -129,7 +139,7 @@
         }
         else
         {
-            errorMessage = "Error: Invalid login attempt.";
+            errorMessage = "Your email and/or password are incorrect. Please try again.";
         }
     }
 
