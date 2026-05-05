@@ -1,18 +1,17 @@
 ﻿@inherits LayoutComponentBase
 @layout PuppetFestAPP.Web.Components.Layout.MainLayout
 
-<MudContainer MaxWidth="MaxWidth.Small"
+<MudContainer MaxWidth="MaxWidth.Medium"
                 ObjectPosition="ObjectPosition.Center">
 
     <MudText Class="my-5">
         <h1>Account Settings</h1>
     </MudText>
 
-    <MudGrid GutterSize="3">
-        <MudItem xs="12" lg="9">
-            <MudPaper Elevation="1" Class="pa-4">
-                @Body
-            </MudPaper>
-        </MudItem>
-    </MudGrid>
+    <MudPaper Elevation="2" 
+            MaxWidth="MaxWidth.Medium"
+            Class="pa-4 my-5">
+        @Body
+    </MudPaper>
+
 </MudContainer>
