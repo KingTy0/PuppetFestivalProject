@@ -8,39 +8,27 @@
 
 <PageTitle>User Management</PageTitle>
 
-<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
-    <MudText Typo="Typo.h4" Class="mb-4">User Management</MudText>
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
+    <MudText Class="my-5">
+        <h1>User Management</h1>
+    </MudText>
+
+    <MudButton Href="/admin/users/create" 
+                StartIcon="@Icons.Material.Filled.Add"
+                Variant="Variant.Filled" 
+                Color="Color.Primary"
+                FullWidth="true"
+                Size="Size.Large"
+                Class="my-5">
+        Create a User
+    </MudButton>
 
     @if (!string.IsNullOrEmpty(statusMessage))
     {
-        <MudAlert Severity="@statusSeverity" Variant="Variant.Filled" Class="mb-4" OnClose="@(() => statusMessage = "")">
+        <MudAlert Severity="@statusSeverity" Variant="Variant.Outlined" Class="mb-4" OnClose="@(() => statusMessage = "")">
             @statusMessage
         </MudAlert>
     }
-
-    @* ── Create New User Form ── *@
-    <MudPaper Elevation="1" Class="pa-4 mb-6">
-        <MudText Typo="Typo.h6" Class="mb-4">Create New User</MudText>
-        <MudGrid>
-            <MudItem xs="12" md="4">
-                <MudTextField @bind-Value="newUserEmail" Label="Email" Variant="Variant.Outlined" Margin="Margin.Dense" />
-            </MudItem>
-            <MudItem xs="12" md="3">
-                <MudTextField @bind-Value="newUserPassword" Label="Password" InputType="InputType.Password" Variant="Variant.Outlined" Margin="Margin.Dense" />
-            </MudItem>
-            <MudItem xs="12" md="3">
-                <MudSelect @bind-Value="newUserRole" Label="Role" Variant="Variant.Outlined" Margin="Margin.Dense">
-                    @foreach (var role in AppRoles.AllRoles)
-                    {
-                        <MudSelectItem Value="@role">@role</MudSelectItem>
-                    }
-                </MudSelect>
-            </MudItem>
-            <MudItem xs="12" md="2" Class="d-flex align-end">
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" OnClick="CreateUser">Create User</MudButton>
-            </MudItem>
-        </MudGrid>
-    </MudPaper>
 
     @* ── User List Table ── *@
     <MudTable Items="@users" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="1">
@@ -91,9 +79,6 @@
 
 @code {
     private List<UserViewModel> users = new();
-    private string newUserEmail = "";
-    private string newUserPassword = "";
-    private string newUserRole = AppRoles.SalesStaff;
     private string statusMessage = "";
     private string statusCssClass = "";
 
@@ -119,28 +104,6 @@
                 Roles = roles.ToList(),
                 EmailConfirmed = user.EmailConfirmed
             });
-        }
-    }
-
-    private async Task CreateUser() {
-        if (string.IsNullOrWhiteSpace(newUserEmail) || string.IsNullOrWhiteSpace(newUserPassword)) {
-            statusMessage = "Email and password are required.";
-            statusCssClass = "alert-warning";
-            return;
-        }
-        using var scope = ServiceProvider.CreateScope();
-        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-        var user = new ApplicationUser { UserName = newUserEmail, Email = newUserEmail, EmailConfirmed = true };
-        var result = await userManager.CreateAsync(user, newUserPassword);
-        if (result.Succeeded) {
-            await userManager.AddToRoleAsync(user, newUserRole);
-            statusMessage = $"User {newUserEmail} created.";
-            statusCssClass = "alert-success";
-            newUserEmail = ""; newUserPassword = "";
-            await LoadUsers();
-        } else {
-            statusMessage = "Error: " + string.Join(", ", result.Errors.Select(e => e.Description));
-            statusCssClass = "alert-danger";
         }
     }
 

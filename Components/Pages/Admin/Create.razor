@@ -1,0 +1,114 @@
+@page "/admin/users/create"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
+@using PuppetFestAPP.Web.Data
+@attribute [Authorize(Roles = "Admin")]
+@rendermode InteractiveServer
+@inject IServiceProvider ServiceProvider
+@inject NavigationManager NavigationManager
+
+<PageTitle>Create User</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
+
+    <MudButton Href="/admin/users" 
+                Variant="Variant.Text"
+                Color="Color.Primary" 
+                Size="Size.Medium"
+                StartIcon="@Icons.Material.Filled.ArrowBack"
+                Style="text-decoration: none;"
+                Class="my-2">
+        Back
+    </MudButton>
+
+    <MudText Class="my-5">
+        <h1>Create a new user</h1>
+    </MudText>
+
+    @if (!string.IsNullOrEmpty(statusMessage))
+    {
+        <MudAlert Severity="@statusSeverity" Variant="Variant.Outlined" Class="mb-4" OnClose="@(() => statusMessage = "")">
+            @statusMessage
+        </MudAlert>
+    }
+
+    <MudPaper Elevation="1" Class="pa-4">
+        <MudGrid>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="newUserEmail" 
+                            Label="Email" 
+                            Variant="Variant.Outlined" 
+                            FullWidth="true" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="newUserPassword" 
+                            Label="Password" 
+                            InputType="InputType.Password" 
+                            Variant="Variant.Outlined" 
+                            FullWidth="true" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudSelect @bind-Value="newUserRole" 
+                            Label="Role" 
+                            Variant="Variant.Outlined" 
+                            FullWidth="true">
+                    @foreach (var role in AppRoles.AllRoles)
+                    {
+                        <MudSelectItem Value="@role">@role</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12" Class="d-flex justify-space-between mt-2">
+                <MudButton Variant="Variant.Outlined" Color="Color.Default" OnClick="@(() => NavigationManager.NavigateTo("/admin/users"))">
+                    Cancel
+                </MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CreateUser">
+                    Create User
+                </MudButton>
+            </MudItem>
+            
+        </MudGrid>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private string newUserEmail = "";
+    private string newUserPassword = "";
+    private string newUserRole = AppRoles.SalesStaff;
+    private string statusMessage = "";
+    private string statusCssClass = "";
+
+    private Severity statusSeverity => statusCssClass switch {
+        "alert-success" => Severity.Success,
+        "alert-danger"  => Severity.Error,
+        "alert-warning" => Severity.Warning,
+        _               => Severity.Info
+    };
+
+    private async Task CreateUser() {
+        if (string.IsNullOrWhiteSpace(newUserEmail) || string.IsNullOrWhiteSpace(newUserPassword)) {
+            statusMessage = "Email and password are required.";
+            statusCssClass = "alert-warning";
+            return;
+        }
+
+        using var scope = ServiceProvider.CreateScope();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+
+        var user = new ApplicationUser {
+            UserName = newUserEmail,
+            Email = newUserEmail,
+            EmailConfirmed = true
+        };
+
+        var result = await userManager.CreateAsync(user, newUserPassword);
+        if (result.Succeeded) {
+            await userManager.AddToRoleAsync(user, newUserRole);
+            NavigationManager.NavigateTo("/admin/users");
+        } else {
+            statusMessage = "Error: " + string.Join(", ", result.Errors.Select(e => e.Description));
+            statusCssClass = "alert-danger";
+        }
+    }
+}
