@@ -2,7 +2,10 @@
 @using Microsoft.EntityFrameworkCore
 @using PuppetFestAPP.Web.Data
 @using System.Linq
+@using MudBlazor
 @rendermode InteractiveServer
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
 @inject IDbContextFactory<ApplicationDbContext> DbFactory
 
 <PageTitle>Transfer Boxes</PageTitle>
@@ -61,6 +64,12 @@
                                                Href="@($"/inventory/transfer/details/{box.Id}")">
                                         View
                                     </MudButton>
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" 
+                                    Color="Color.Error" 
+                                    Size="Size.Small"
+                                    Class="mx-2"
+                                    OnClick="@(() => ExecuteDelete(box.Id))" />
+
                                     <MudButton Variant="Variant.Filled" Color="Color.Primary"
                                                Size="Size.Small" Class="ml-auto"
                                                StartIcon="@Icons.Material.Filled.LocalShipping"
@@ -306,4 +315,52 @@
         await context.SaveChangesAsync();
         await LoadData();
     }
+
+
+private async Task ExecuteDelete(int id)
+{
+    using var context = await DbFactory.CreateDbContextAsync();
+    
+    // We need to include Items and ProductLocations to handle the refund
+    var box = await context.StockTransferBoxes
+        .Include(b => b.Items)
+        .FirstOrDefaultAsync(b => b.Id == id);
+
+    if (box == null) return;
+
+    try 
+    {
+        foreach (var item in box.Items)
+        {
+            var sourceStock = await context.ProductLocations
+                .FirstOrDefaultAsync(pl => pl.LocationId == box.FromLocationId && pl.ProductId == item.ProductId);
+
+            if (sourceStock != null)
+            {
+                sourceStock.Quantity += item.Quantity;
+            }
+            else
+            {
+                context.ProductLocations.Add(new ProductLocation 
+                { 
+                    LocationId = box.FromLocationId, 
+                    ProductId = item.ProductId, 
+                    Quantity = item.Quantity,
+                    LastUpdated = DateTime.UtcNow
+                });
+            }
+        }
+
+        context.StockTransferBoxes.Remove(box);
+        await context.SaveChangesAsync();
+        
+        Snackbar.Add("Transfer deleted and stock refunded.", Severity.Info);
+        await LoadData();
+    }
+    catch (Exception ex)
+    {
+        Snackbar.Add("Error: Could not delete transfer.", Severity.Error);
+    }
+}
+
 }

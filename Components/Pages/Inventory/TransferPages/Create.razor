@@ -21,26 +21,35 @@
         <MudStack Spacing="4">
             <MudTextField Label="Box Title" @bind-Value="Form.BoxTitle" Variant="Variant.Outlined" Placeholder="e.g. Box #1" />
 
-            <MudSelect T="int?" Label="From Location"
-                       Value="Form.FromLocationId"
-                       ValueChanged="OnFromLocationChanged"
-                       Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter">
-                <MudSelectItem T="int?" Value="null">Select Source...</MudSelectItem>
-                @foreach (var loc in Locations)
-                {
-                    <MudSelectItem T="int?" Value="@loc.Id">@loc.Name</MudSelectItem>
-                }
-            </MudSelect>
+            
+                    <MudSelect T="int?" Label="From Location"
+                            Value="Form.FromLocationId"
+                            ValueChanged="OnFromLocationChanged"
+                            Variant="Variant.Outlined" 
+                            FullWidth="true"
+                            AnchorOrigin="Origin.BottomCenter" 
+                            TransformOrigin="Origin.TopCenter">
+                    <MudSelectItem T="int?" Value="null">Select Source...</MudSelectItem>
+                    @foreach (var loc in Locations)
+                    {
+                        <MudSelectItem T="int?" Value="@loc.Id">@loc.Name</MudSelectItem>
+                    }
+                </MudSelect>
 
-            <MudSelect T="int?" Label="To Location"
-                       @bind-Value="Form.ToLocationId"
-                       Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter">
-                <MudSelectItem T="int?" Value="null">Select Destination...</MudSelectItem>
-                @foreach (var loc in Locations)
-                {
-                    <MudSelectItem T="int?" Value="@loc.Id">@loc.Name</MudSelectItem>
-                }
-            </MudSelect>
+                <MudSelect T="int?" Label="To Location"
+                            @bind-Value="Form.ToLocationId"
+                            Variant="Variant.Outlined" 
+                            FullWidth="true"
+                            AnchorOrigin="Origin.BottomCenter" 
+                            TransformOrigin="Origin.TopCenter">
+                    <MudSelectItem T="int?" Value="null">Select Destination...</MudSelectItem>
+                    @foreach (var loc in Locations)
+                    {
+                        <MudSelectItem T="int?" Value="@loc.Id">@loc.Name</MudSelectItem>
+                    }
+                </MudSelect>
+                
+            
 
             <MudSwitch @bind-Value="Form.IsUrgent" Label="Urgent" Color="Color.Error" />
             <MudText Typo="Typo.caption" Class="mt-n4">Mark this box as urgent to expedite delivery.</MudText>
@@ -154,18 +163,22 @@
 
         <MudStack Spacing="1" Class="mb-6">
             @foreach (var item in Form.Items)
-            {
-                <MudPaper Class="pa-3 d-flex justify-space-between align-center" Elevation="1">
-                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                        <MudAvatar Variant="Variant.Outlined" Size="Size.Small"
-                                   Style="border-color:var(--mud-palette-divider)">
-                            <MudIcon Icon="@Icons.Material.Filled.Inventory2" Size="Size.Small" />
-                        </MudAvatar>
-                        <MudText Typo="Typo.body2">@GetProductName(item.ProductId)</MudText>
-                    </MudStack>
-                    <MudText Typo="Typo.body2" Color="Color.Secondary">x@item.Quantity</MudText>
-                </MudPaper>
-            }
+                {
+                    <MudPaper Class="pa-3 d-flex justify-space-between align-center mb-2" Elevation="1">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            <MudAvatar Variant="Variant.Filled" Size="Size.Small" Color="Color.Default">
+                                <MudIcon Icon="@Icons.Material.Filled.Inventory2" Size="Size.Small" />
+                            </MudAvatar>
+                            <div>
+                                <MudText Typo="Typo.body2"><b>@GetProductName(item.ProductId)</b></MudText>
+                                
+                            </div>
+                        </MudStack>
+                        <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Text">
+                            QTY: @item.Quantity
+                        </MudChip>
+                    </MudPaper>
+                }
         </MudStack>
 
         <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
@@ -200,17 +213,21 @@
         Form.BoxTitle = "Box #" + (await context.StockTransferBoxes.CountAsync() + 1);
     }
 
-    private async Task OpenPicker()
+   private async Task OpenPicker()
     {
-        // Safety reload in case state got out of sync (fixes double-click bug)
-        if (!AvailableInventory.Any() && Form.FromLocationId.HasValue)
+        if (!Form.FromLocationId.HasValue)
         {
-            using var context = await DbFactory.CreateDbContextAsync();
-            AvailableInventory = await context.ProductLocations
-                .Include(pl => pl.Product)
-                .Where(pl => pl.LocationId == Form.FromLocationId && pl.Quantity > 0)
-                .ToListAsync();
+            Snackbar.Add("Please select a source location first.", Severity.Warning);
+            return;
         }
+
+       
+        using var context = await DbFactory.CreateDbContextAsync();
+        AvailableInventory = await context.ProductLocations
+            .Include(pl => pl.Product)
+                .ThenInclude(p => p.ParentProduct)
+            .Where(pl => pl.LocationId == Form.FromLocationId && pl.Quantity > 0)
+            .ToListAsync();
 
         var parameters = new DialogParameters
         {
@@ -225,7 +242,10 @@
             MaxWidth = MaxWidth.Small
         };
 
-        await DialogService.ShowAsync<ProductPickerDialog>("Add Products to Box", parameters, options);
+        var dialog = await DialogService.ShowAsync<ProductPickerDialog>("Add Products to Box", parameters, options);
+        var result = await dialog.Result;
+
+       
         StateHasChanged();
     }
 
@@ -235,22 +255,12 @@
     }
 
     private async Task OnFromLocationChanged(int? newId)
-    {
-        Form.FromLocationId = newId;
-        Form.Items.Clear();
-        AvailableInventory.Clear();
-
-        if (newId.HasValue)
-        {
-            using var context = await DbFactory.CreateDbContextAsync();
-            AvailableInventory = await context.ProductLocations
-                .Include(pl => pl.Product)
-                .Where(pl => pl.LocationId == newId && pl.Quantity > 0)
-                .ToListAsync();
-        }
-
-        await InvokeAsync(StateHasChanged);
-    }
+{
+    Form.FromLocationId = newId;
+    Form.Items.Clear();
+    AvailableInventory.Clear(); 
+    StateHasChanged();
+}
 
     private void RemoveItem(TransferBoxItemModel item)
     {
@@ -261,9 +271,17 @@
     private string GetLocationName(int? id) =>
         Locations.FirstOrDefault(l => l.Id == id)?.Name ?? "Unknown";
 
-    private string GetProductName(int id) =>
-        AvailableInventory.FirstOrDefault(i => i.ProductId == id)?.Product?.Name ?? "Item";
+   private string GetProductName(int id)
+    {
+        var item = AvailableInventory.FirstOrDefault(i => i.ProductId == id);
+        if (item?.Product == null) return "Unknown Item";
 
+        // Use the Parent Name if it exists, otherwise fallback to the Product Name
+        var name = item.Product.ParentProduct?.Name ?? item.Product.Name;
+        
+        // Add the variant details (Size/Color) so the user knows exactly which one is in the box
+        return $"{name} ({item.Product.Size} / {item.Product.Color})";
+    }
     private async Task CreateTransfer()
     {
         if (!Form.FromLocationId.HasValue || !Form.ToLocationId.HasValue || !Form.Items.Any()) return;

@@ -4,6 +4,7 @@
 @using System.Linq
 @rendermode InteractiveServer
 @inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject ISnackbar Snackbar
 
 <PageTitle>Locations</PageTitle>
 
@@ -38,9 +39,23 @@ else
                                 <MudText Typo="Typo.body2" Color="Color.Secondary">@loc.Address</MudText>
                             </div>
                             <div class="d-flex">
-                                <MudIconButton Icon="@Icons.Material.Filled.Edit" Variant="Variant.Filled" Color="Color.Default" Class="mr-2" href="@($"/locations/edit/{loc.Id}")" />
-                                <MudIconButton Icon="@Icons.Material.Filled.MenuBook" Variant="Variant.Filled" Color="Color.Default" href="/inventory/stock" />
-                            </div>
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit" 
+                                        Variant="Variant.Filled" 
+                                        Color="Color.Default" 
+                                        Class="mr-2" 
+                                        href="@($"/locations/edit/{loc.Id}")" />
+
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" 
+                                        Variant="Variant.Filled" 
+                                        Color="Color.Error" 
+                                        Class="mr-2" 
+                                        OnClick="@(() => DeleteLocation(loc.Id))" />
+
+                            <MudIconButton Icon="@Icons.Material.Filled.MenuBook" 
+                                        Variant="Variant.Filled" 
+                                        Color="Color.Default" 
+                                        href="/inventory/stock" />
+                        </div>
                         </div>
                     </MudListItem>
                     <MudDivider />
@@ -62,9 +77,23 @@ else
                                 <MudText Typo="Typo.body2" Color="Color.Secondary">@loc.Address</MudText>
                             </div>
                             <div class="d-flex">
-                                <MudIconButton Icon="@Icons.Material.Filled.Edit" Variant="Variant.Filled" Color="Color.Default" Class="mr-2" href="@($"/locations/edit/{loc.Id}")" />
-                                <MudIconButton Icon="@Icons.Material.Filled.MenuBook" Variant="Variant.Filled" Color="Color.Default" href="/inventory/stock" />
-                            </div>
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit" 
+                                        Variant="Variant.Filled" 
+                                        Color="Color.Default" 
+                                        Class="mr-2" 
+                                        href="@($"/locations/edit/{loc.Id}")" />
+
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" 
+                                        Variant="Variant.Filled" 
+                                        Color="Color.Error" 
+                                        Class="mr-2" 
+                                        OnClick="@(() => DeleteLocation(loc.Id))" />
+
+                            <MudIconButton Icon="@Icons.Material.Filled.MenuBook" 
+                                        Variant="Variant.Filled" 
+                                        Color="Color.Default" 
+                                        href="/inventory/stock" />
+                        </div>
                         </div>
                     </MudListItem>
                     <MudDivider />
@@ -77,16 +106,31 @@ else
 @code {
     private List<Location>? AllLocations;
 
-    // Filters for the groups
+    
     private IEnumerable<Location> MainLocations => 
-        AllLocations?.Where(l => l.Name.Contains("410 S Michigan", StringComparison.OrdinalIgnoreCase)) ?? Enumerable.Empty<Location>();
+        AllLocations?.Where(l => l.Type == LocationType.Store) ?? Enumerable.Empty<Location>();
 
     private IEnumerable<Location> OtherLocations => 
-        AllLocations?.Where(l => !l.Name.Contains("410 S Michigan", StringComparison.OrdinalIgnoreCase)) ?? Enumerable.Empty<Location>();
+        AllLocations?.Where(l => l.Type != LocationType.Store) ?? Enumerable.Empty<Location>();
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnInitializedAsync() => await LoadData();
+
+    private async Task LoadData()
     {
         using var db = await DbFactory.CreateDbContextAsync();
         AllLocations = await db.Locations.ToListAsync();
+    }
+
+    private async Task DeleteLocation(int id)
+    {
+        using var db = await DbFactory.CreateDbContextAsync();
+        var loc = await db.Locations.FindAsync(id);
+        if (loc != null)
+        {
+            db.Locations.Remove(loc);
+            await db.SaveChangesAsync();
+            await LoadData(); // Refresh the UI
+            Snackbar.Add("Location deleted", Severity.Info);
+        }
     }
 }

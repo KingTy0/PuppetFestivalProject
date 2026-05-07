@@ -3,20 +3,26 @@
 @using Microsoft.EntityFrameworkCore
 @inject IDbContextFactory<ApplicationDbContext> DbFactory
 @inject NavigationManager Navigation
-
-<PageTitle>Create Location</PageTitle>
+@rendermode InteractiveServer
 
 <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
     <MudText Typo="Typo.h4" Class="mb-4">Create Location</MudText>
 
     <EditForm Model="Form" OnValidSubmit="CreateLocation">
         <DataAnnotationsValidator />
-        
         <MudPaper Elevation="1" Class="pa-4">
             <MudStack Spacing="3">
-                <MudTextField Label="Name" @bind-Value="Form.Name" For="@(() => Form.Name)" Variant="Variant.Outlined" />
+              
+                <MudTextField Label="Location Name" 
+                              @bind-Value="Form.Name" 
+                              Variant="Variant.Outlined" 
+                              Immediate="true"
+                              Required="true" />
 
-                <MudTextField Label="Address" @bind-Value="Form.Address" For="@(() => Form.Address)" Variant="Variant.Outlined" />
+                <MudTextField Label="Address" 
+                              @bind-Value="Form.Address" 
+                              Variant="Variant.Outlined" 
+                              Immediate="true" />
 
                 <MudSelect Label="Type" @bind-Value="Form.Type" Variant="Variant.Outlined">
                     @foreach (var type in Enum.GetValues<LocationType>())
@@ -35,18 +41,24 @@
 </MudContainer>
 
 @code {
-    [SupplyParameterFromForm]
+   
     public LocationFormModel Form { get; set; } = new();
 
     private async Task CreateLocation()
     {
+        
+        if (string.IsNullOrWhiteSpace(Form.Name)) return;
+
         using var context = await DbFactory.CreateDbContextAsync();
-        context.Locations.Add(new Location
+        
+        var newLocation = new Location
         {
             Name = Form.Name,
             Address = Form.Address,
             Type = Form.Type
-        });
+        };
+
+        context.Locations.Add(newLocation);
         await context.SaveChangesAsync();
         Navigation.NavigateTo("/Locations");
     }
