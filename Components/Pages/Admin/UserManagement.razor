@@ -47,18 +47,22 @@
                         <div class="d-flex align-center justify-space-between">
                             <MudText Typo="Typo.body1"><p>@admin.Email</p></MudText>
                             <div>
-                                <MudIconButton OnClick="@(() => NavigationManager.NavigateTo($"/admin/users/{admin.Id}/edit"))"
+                                <MudTooltip Text="Edit User">
+                                    <MudIconButton OnClick="@(() => NavigationManager.NavigateTo($"/admin/users/{admin.Id}/edit"))"
                                     Icon="@Icons.Material.Filled.Edit"
                                     Variant="Variant.Filled" 
                                     Color="Color.Default" 
                                     Class="mr-2"
-                                />
-                                <MudIconButton OnClick="@(() => ConfirmDelete(admin))"
+                                    />
+                                </MudTooltip>
+                                <MudTooltip Text="Delete User">
+                                    <MudIconButton OnClick="@(() => ConfirmDelete(admin))"
                                     Disabled="@(admin.Email == "admin@puppetfest.local")"
                                     Icon="@Icons.Material.Filled.Delete" 
                                     Variant="Variant.Filled" 
                                     Color="Color.Default" 
                                     Class="mr-2" />
+                                </MudTooltip>
                             </div>
                         </div>
                     </MudListItem>
@@ -76,18 +80,22 @@
                         <div class="d-flex align-center justify-space-between">
                             <MudText Typo="Typo.body1"><p>@im.Email</p></MudText>
                             <div>
-                                <MudIconButton OnClick="@(() => NavigationManager.NavigateTo($"/admin/users/{im.Id}/edit"))"
+                                <MudTooltip Text="Edit User">
+                                    <MudIconButton OnClick="@(() => NavigationManager.NavigateTo($"/admin/users/{im.Id}/edit"))"
                                     Icon="@Icons.Material.Filled.Edit"
                                     Variant="Variant.Filled" 
                                     Color="Color.Default" 
                                     Class="mr-2"
-                                />
-                                <MudIconButton OnClick="@(() => ConfirmDelete(im))"
+                                    />
+                                </MudTooltip>
+                                <MudTooltip Text="Delete User">
+                                    <MudIconButton OnClick="@(() => ConfirmDelete(im))"
                                     Disabled="@(im.Email == "admin@puppetfest.local")"
                                     Icon="@Icons.Material.Filled.Delete" 
                                     Variant="Variant.Filled" 
                                     Color="Color.Default" 
                                     Class="mr-2" />
+                                </MudTooltip>
                             </div>
                         </div>
                     </MudListItem>
@@ -105,18 +113,22 @@
                         <div class="d-flex align-center justify-space-between">
                             <MudText Typo="Typo.body1"><p>@ss.Email</p></MudText>
                             <div>
-                                <MudIconButton OnClick="@(() => NavigationManager.NavigateTo($"/admin/users/{ss.Id}/edit"))"
+                                <MudTooltip Text="Edit User">
+                                    <MudIconButton OnClick="@(() => NavigationManager.NavigateTo($"/admin/users/{ss.Id}/edit"))"
                                     Icon="@Icons.Material.Filled.Edit"
                                     Variant="Variant.Filled" 
                                     Color="Color.Default" 
                                     Class="mr-2"
-                                />
-                                <MudIconButton OnClick="@(() => ConfirmDelete(ss))"
+                                    />
+                                </MudTooltip>
+                                <MudTooltip Text="Delete User">
+                                    <MudIconButton OnClick="@(() => ConfirmDelete(ss))"
                                     Disabled="@(ss.Email == "admin@puppetfest.local")"
                                     Icon="@Icons.Material.Filled.Delete" 
                                     Variant="Variant.Filled" 
                                     Color="Color.Default" 
                                     Class="mr-2" />
+                                </MudTooltip>
                             </div>
                         </div>
                     </MudListItem>
