@@ -95,23 +95,7 @@
             }
         </MudGrid>
 
-        <MudText Typo="Typo.subtitle1" Style="font-weight: 700; margin-bottom: 12px;">
-            Select Color (Optional):
-        </MudText>
-
-        <MudGrid Spacing="0" Class="mb-4">
-            @foreach (var color in Enum.GetValues<ProductColor>())
-            {
-                <MudItem xs="6">
-            <MudCheckBox T="bool"
-                     Value="@Form.SelectedColors.Contains(color)"
-                     ValueChanged="@(v => OnColorToggled(color, v))"
-                     Label="@color.ToString()"
-                     Color="Color.Primary"
-                     Size="Size.Small" />
-            </MudItem>
-            }
-        </MudGrid>
+        
 
         <MudText Typo="Typo.subtitle1" Style="font-weight: 700; margin-bottom: 12px;">
             Images
@@ -264,23 +248,7 @@ private void OnSizeToggled(ProductSize size, bool isChecked)
 }
 
 
-private void OnColorToggled(ProductColor color, bool isChecked)
-{
-    if (color == ProductColor.NA && isChecked)
-    {
-        Form.SelectedColors.Clear();
-        Form.SelectedColors.Add(ProductColor.NA);
-    }
-    else if (isChecked)
-    {
-        Form.SelectedColors.Remove(ProductColor.NA);
-        if (!Form.SelectedColors.Contains(color)) Form.SelectedColors.Add(color);
-    }
-    else
-    {
-        Form.SelectedColors.Remove(color);
-    }
-}
+
   private async Task LoadFiles(InputFileChangeEventArgs e)
 {
     var file = e.File;
@@ -377,41 +345,35 @@ private void OnColorToggled(ProductColor color, bool isChecked)
     }
 
  
-    if (Form.SelectedSizes.Any() || Form.SelectedColors.Any())
+    if (Form.SelectedSizes.Any())
+{
+    var sizes = Form.SelectedSizes.Where(s => s != ProductSize.NA).ToList();
+    if (!sizes.Any()) sizes.Add(ProductSize.NA);
+
+    foreach (var s in sizes)
     {
-        var sizes = Form.SelectedSizes.Any() ? Form.SelectedSizes : new List<ProductSize> { ProductSize.NA };
-        var colors = Form.SelectedColors.Any() ? Form.SelectedColors : new List<ProductColor> { ProductColor.NA };
+        bool exists = await context.Products.AnyAsync(p =>
+            p.ParentProductId == parentProduct.Id && p.Size == s);
 
-        foreach (var s in sizes)
+        if (!exists)
         {
-            foreach (var c in colors)
+            context.Products.Add(new Product
             {
-                if (s == ProductSize.NA && c == ProductColor.NA) continue;
-
-                bool exists = await context.Products.AnyAsync(p => 
-                    p.ParentProductId == parentProduct.Id && p.Size == s && p.Color == c);
-
-                if (!exists)
-                {
-                    context.Products.Add(new Product
-                    {
-                        Name = $"{parentProduct.Name} ({s} / {c})",
-                        ParentProductId = parentProduct.Id,
-                        Price = Form.Price,
-                        CategoryId = parentProduct.CategoryId,
-                        Size = s,
-                        Color = c,
-                       
-                        ImageId = parentProduct.ImageId, 
-                        Description = parentProduct.Description,
-                        IsActive = true,
-                        DateAdded = DateTime.Now
-                    });
-                }
-            }
+                Name = $"{parentProduct.Name} ({s})",
+                ParentProductId = parentProduct.Id,
+                Price = Form.Price,
+                CategoryId = parentProduct.CategoryId,
+                Size = s,
+                Color = ProductColor.NA,
+                ImageId = parentProduct.ImageId,
+                Description = parentProduct.Description,
+                IsActive = true,
+                DateAdded = DateTime.Now
+            });
         }
-        await context.SaveChangesAsync();
     }
+    await context.SaveChangesAsync();
+}
 
     Snackbar.Add("Changes saved successfully!", Severity.Success);
     NavigationManager.NavigateTo($"/products/details/{parentProduct.Id}");

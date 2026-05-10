@@ -24,12 +24,12 @@
                               Variant="Variant.Outlined" 
                               Immediate="true" />
 
-                <MudSelect Label="Type" @bind-Value="Form.Type" Variant="Variant.Outlined">
-                    @foreach (var type in Enum.GetValues<LocationType>())
-                    {
-                        <MudSelectItem Value="@type">@type</MudSelectItem>
-                    }
-                </MudSelect>
+               <MudSelect Label="Type" @bind-Value="Form.Type" Variant="Variant.Outlined">
+                @foreach (var type in Enum.GetValues<LocationType>())
+                {
+                    <MudSelectItem Value="@type">@GetLocationTypeName(type)</MudSelectItem>
+                }
+            </MudSelect>
 
                 <MudStack Row="true" Class="mt-4" Spacing="2">
                     <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Create</MudButton>
@@ -67,6 +67,16 @@
     {
         public string Name { get; set; } = "";
         public string Address { get; set; } = "";
-        public LocationType Type { get; set; } = LocationType.Store;
+        public LocationType Type { get; set; } = LocationType.Event;
     }
+
+    private string GetLocationTypeName(LocationType type) => type switch
+{
+    LocationType.Event => "Theater",
+    LocationType.Store => "Store",
+    LocationType.Van => "Van",
+    LocationType.Warehouse => "Warehouse",
+    _ => type.ToString()
+};
+
 }

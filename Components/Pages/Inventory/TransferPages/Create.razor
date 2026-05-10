@@ -209,7 +209,9 @@
     protected override async Task OnInitializedAsync()
     {
         using var context = await DbFactory.CreateDbContextAsync();
-        Locations = await context.Locations.Where(l => l.IsActive).ToListAsync();
+        Locations = await context.Locations
+    .Where(l => l.IsActive && l.Type != LocationType.Van)
+    .ToListAsync();
         Form.BoxTitle = "Box #" + (await context.StockTransferBoxes.CountAsync() + 1);
     }
 
