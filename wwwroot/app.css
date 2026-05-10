@@ -209,3 +209,27 @@ p .overline {
     line-height: 2.70; 
   }
 }
+
+/* Global Popup Styling */
+.popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1001;
+  width: 100%;
+  max-width: 420px;
+  padding: 0 16px;
+}
+
+/* Expansion Panel Overrides (for mobile spacing)*/
+@media (max-width: 440px) {
+  .mud-expand-panel .mud-expand-panel-header.mud-expand-panel-header-gutters {
+    padding-left: 12px;
+    padding-right: 12px; 
+  }
+  .mud-expand-panel .mud-expand-panel-content.mud-expand-panel-gutters {
+    padding-left: 8px;
+    padding-right: 8px; 
+  }
+}

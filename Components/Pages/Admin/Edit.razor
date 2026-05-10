@@ -1,0 +1,185 @@
+@page "/admin/users/{UserId}/edit"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
+@using PuppetFestAPP.Web.Data
+@attribute [Authorize(Roles = "Admin")]
+@rendermode InteractiveServer
+@inject IServiceProvider ServiceProvider
+@inject NavigationManager NavigationManager
+
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
+
+    <MudButton Href="/admin/users"
+               Variant="Variant.Text" 
+               Color="Color.Primary"
+               StartIcon="@Icons.Material.Filled.ArrowBack"
+               Class="my-2">
+        Back
+    </MudButton>
+
+    <MudText Class="my-5">
+        <h1>Edit User</h1>
+    </MudText>
+
+    @if (!string.IsNullOrEmpty(statusMessage))
+    {
+        <MudAlert OnClose="@(() => statusMessage = "")"
+                    Severity="@statusSeverity" 
+                    Variant="Variant.Outlined"
+                    Class="mb-4">
+            @statusMessage
+        </MudAlert>
+    }
+
+    <MudPaper Elevation="1" Class="pa-4">
+        <MudGrid>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="email" 
+                            Label="Email"
+                            Variant="Variant.Outlined" 
+                            FullWidth="true" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="phoneNumber"
+                            Label="Phone Number"
+                            Variant="Variant.Outlined" 
+                            FullWidth="true" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="newPassword" 
+                            Label="New Password (leave blank to keep current)"
+                            InputType="InputType.Password"
+                            FullWidth="true" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudSelect @bind-Value="selectedRole" 
+                            Label="Role"
+                            Variant="Variant.Outlined" 
+                            FullWidth="true">
+                    @foreach (var role in AppRoles.AllRoles)
+                    {
+                        <MudSelectItem Value="@role">@role</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12" Class="d-flex justify-space-between mt-2">
+                <MudButton OnClick="@(() => NavigationManager.NavigateTo("/admin/users"))"
+                            Variant="Variant.Outlined" 
+                            Color="Color.Default">
+                    Cancel
+                </MudButton>
+                <MudButton OnClick="SaveUser"
+                            Variant="Variant.Filled" 
+                            Color="Color.Primary">
+                    Save Changes
+                </MudButton>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+</MudContainer>
+
+
+@code {
+    // Exposes route segment and binds UserId to URL
+    [Parameter] public string UserId { get; set; } = "";
+
+    private ApplicationUser? currentUser;
+    private string email = "";
+    private string phoneNumber = "";
+    private string newPassword = "";  
+    private string selectedRole = "";
+    private List<string> currentRoles = new();
+
+    private string statusMessage = "";
+    private string statusCssClass = "";
+
+    private Severity statusSeverity => statusCssClass switch {
+        "alert-success" => Severity.Success,
+        "alert-danger"  => Severity.Error,
+        "alert-warning" => Severity.Warning,
+        _               => Severity.Info
+    };
+
+    // Load user on init
+    protected override async Task OnInitializedAsync()
+    {
+        using var scope = ServiceProvider.CreateScope();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+
+        currentUser = await userManager.FindByIdAsync(UserId);
+        if (currentUser is null)
+        {
+            NavigationManager.NavigateTo("/admin/users");
+            return;
+        }
+
+        email = currentUser.Email ?? "";
+        phoneNumber = currentUser.PhoneNumber ?? "";
+        currentRoles = (await userManager.GetRolesAsync(currentUser)).ToList();
+        selectedRole = currentRoles.FirstOrDefault() ?? AppRoles.SalesStaff;
+    }
+
+    // Save user's new information
+    private async Task SaveUser()
+    {
+        if (currentUser is null) return;
+
+        using var scope = ServiceProvider.CreateScope();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var user = await userManager.FindByIdAsync(currentUser.Id);
+        if (user is null) return;
+
+        // If the user is the original admin, alert if editing the email
+        if (user.Email == "admin@puppetfest.local" && user.Email != email)
+        {
+            statusMessage = "Cannot change the email of the root admin account.";
+            statusCssClass = "alert-warning";
+            return;
+        }
+
+        // Update email
+        if (user.Email != email)
+        {
+            user.Email = email;
+            user.UserName = email;
+            var emailResult = await userManager.UpdateAsync(user);
+            if (!emailResult.Succeeded)
+            {
+                statusMessage = "Email update failed: " + string.Join(", ", emailResult.Errors.Select(e => e.Description));
+                statusCssClass = "alert-danger";
+                return;
+            }
+        }
+
+        // Update phone number
+        user.PhoneNumber = phoneNumber;
+        await userManager.UpdateAsync(user);
+
+        // Update password (only if provided)
+        if (!string.IsNullOrWhiteSpace(newPassword))
+        {
+            var token = await userManager.GeneratePasswordResetTokenAsync(user);
+            var pwResult = await userManager.ResetPasswordAsync(user, token, newPassword);
+            if (!pwResult.Succeeded)
+            {
+                statusMessage = "Password update failed: " + string.Join(", ", pwResult.Errors.Select(e => e.Description));
+                statusCssClass = "alert-danger";
+                return;
+            }
+        }
+
+        // Update role — remove all existing, add selected
+        var existingRoles = await userManager.GetRolesAsync(user);
+        await userManager.RemoveFromRolesAsync(user, existingRoles);
+        await userManager.AddToRoleAsync(user, selectedRole);
+
+
+        statusMessage = "User updated successfully.";
+        statusCssClass = "alert-success";
+
+        // Navigate back
+        NavigationManager.NavigateTo("/admin/users?status=success");
+    }
+}
