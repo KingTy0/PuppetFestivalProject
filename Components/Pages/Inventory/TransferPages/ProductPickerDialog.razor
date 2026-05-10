@@ -1,0 +1,217 @@
+@using PuppetFestAPP.Web.Data
+@using PuppetFestAPP.Web.Models
+@rendermode InteractiveServer
+@inject ISnackbar Snackbar
+
+<MudDialogContent Class="pa-0">
+
+    @* Sticky header with search + filter *@
+    <MudPaper Elevation="0" Class="pa-3 pb-2" Style="position:sticky;top:0;z-index:10;border-bottom:1px solid var(--mud-palette-divider)">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true"
+                   Disabled="@(!Items.Any())"
+                   OnClick="() => MudDialog.Close()"
+                   Class="mb-3">
+            CONFIRM SELECTION
+        </MudButton>
+
+        <MudStack Row="true" Spacing="2">
+            <MudTextField @bind-Value="searchString" Placeholder="Search for an item"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                          Immediate="true" Variant="Variant.Outlined" Margin="Margin.Dense"
+                          Style="flex:1" />
+            <MudMenu EndIcon="@Icons.Material.Filled.FilterList" 
+                    Label="Filter"
+                    Variant="Variant.Outlined"
+                    Size="Size.Small" 
+                    Style="white-space:nowrap"
+                    AnchorOrigin="Origin.BottomCenter" 
+                    TransformOrigin="Origin.TopCenter">
+                <MudMenuItem OnClick="@(() => searchString = "")">Clear Filters</MudMenuItem>
+                <MudMenuItem OnClick="@(() => searchString = "Low Stock")">Low Stock</MudMenuItem>
+            </MudMenu>
+        </MudStack>
+    </MudPaper>
+
+    @* Scrollable product list *@
+   <div style="max-height: 55vh; overflow-y: auto;" class="pa-2">
+    
+    
+    @foreach (var parent in GroupedInventory)
+    {
+        <MudPaper Outlined="true" Class="mb-2 overflow-hidden">
+            <MudExpansionPanel DisableGutters="true">
+                <TitleContent>
+                    <div class="d-flex align-center py-2">
+                        <MudAvatar Variant="Variant.Outlined" Square="true" Class="mr-3">
+                             <MudIcon Icon="@Icons.Material.Filled.Inventory2" Size="Size.Small" />
+                        </MudAvatar>
+                        <MudText><b>@parent.ParentName</b></MudText>
+                    </div>
+                </TitleContent>
+                <ChildContent>
+                    <MudDivider />
+                    @foreach (var v in parent.Variants)
+                    {
+                        
+                        {
+                            var existing = Items.FirstOrDefault(i => i.ProductId == v.ProductId);
+                            var currentQty = existing?.Quantity ?? 0;
+
+                            <div class="d-flex align-center justify-space-between pa-4 @(currentQty > 0 ? "mud-theme-primary-lighten" : "")">
+                                <div>
+                                    <MudText Typo="Typo.body2">@v.VariantName</MudText>
+                                    <MudText Typo="Typo.caption">Available: @v.StockAvailable</MudText>
+                                </div>
+                                
+                                <div class="d-flex align-center" style="width: 140px; justify-content: flex-end;">
+                                    @if (currentQty > 0)
+                                    {
+                                        <MudIconButton Icon="@Icons.Material.Filled.RemoveCircle" 
+                                                    Color="Color.Error" 
+                                                    Size="Size.Small"
+                                                    OnClick="() => UpdateQuantity(v, -1)" />
+                                    }
+
+                                    <MudNumericField T="int" 
+                                                    Value="currentQty" 
+                                                    ValueChanged="@(val => HandleNumericChange(v, val))"
+                                                    Variant="Variant.Text" 
+                                                    Margin="Margin.Dense"
+                                                    HideSpinButtons="true"
+                                                    Class="mx-1"
+                                                    Style="width: 40px;"
+                                                    inputStyle="text-align: center;"
+                                                    Min="0" 
+                                                    Max="v.StockAvailable" />
+
+                                    <MudIconButton Icon="@Icons.Material.Filled.AddCircle" 
+                                                Color="Color.Success" 
+                                                Size="Size.Small"
+                                                Disabled="@(currentQty >= v.StockAvailable)"
+                                                OnClick="() => UpdateQuantity(v, 1)" />
+                                </div>
+                            </div>
+                        }
+                    }
+                </ChildContent>
+            </MudExpansionPanel>
+        </MudPaper>
+    }
+
+    
+    @if (!GroupedInventory.Any())
+    {
+        <div class="pa-12 d-flex flex-column align-center justify-center">
+           <MudIcon Icon="@Icons.Material.Filled.SearchOff" Size="Size.Large" Color="Color.Default" Class="mb-2" />
+            <MudText Typo="Typo.body2" Color="Color.Secondary" Align="Align.Center">
+                No products found matching<br /><b>"@searchString"</b>
+            </MudText>
+        </div>
+    }
+</div>
+
+</MudDialogContent>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public List<ProductLocation> Inventory { get; set; } = new();
+    [Parameter] public List<TransferBoxItemModel> Items { get; set; } = new();
+
+    private string searchString = "";
+
+    private IEnumerable<GroupedProduct> GroupedInventory => Inventory
+        .Where(x => string.IsNullOrWhiteSpace(searchString) || 
+                (x.Product?.Name.Contains(searchString, StringComparison.OrdinalIgnoreCase) ?? false))
+        
+        .GroupBy(x => x.Product?.ParentProductId ?? x.Product?.Id ?? 0)
+        .Select(g => {
+            var firstItem = g.First().Product;
+          
+            var cleanParentName = firstItem?.ParentProduct?.Name ?? firstItem?.Name ?? "Unknown Product";
+
+            return new GroupedProduct {
+                ParentName = cleanParentName,
+                Variants = g.Select(v => new VariantInfo {
+                    ProductId = v.ProductId,
+                   
+                    VariantName = $"{v.Product?.Size} / {v.Product?.Color}",
+                    StockAvailable = v.Quantity
+                }).ToList()
+            };
+        });
+
+    private void UpdateQuantity(VariantInfo variant, int change)
+        {
+            var existing = Items.FirstOrDefault(i => i.ProductId == variant.ProductId);
+
+            if (existing == null && change > 0)
+            {
+                // Not in the box yet? Add it with quantity 1
+                Items.Add(new TransferBoxItemModel 
+                { 
+                    ProductId = variant.ProductId, 
+                    Quantity = 1 
+                });
+            }
+            else if (existing != null)
+            {
+                // Already in the box? Update the number
+                existing.Quantity += change;
+
+                // If user subtracts down to 0, kick it out of the list
+                if (existing.Quantity <= 0)
+                {
+                    Items.Remove(existing);
+                }
+                
+                // Safety: Don't let them add more than what's on the shelf
+                if (existing.Quantity > variant.StockAvailable)
+                {
+                    existing.Quantity = variant.StockAvailable;
+                    Snackbar.Add($"Cannot exceed available stock ({variant.StockAvailable})", Severity.Warning);
+                }
+            }
+            
+            StateHasChanged();
+        }
+
+        private void HandleNumericChange(VariantInfo variant, int newValue)
+{
+    var existing = Items.FirstOrDefault(i => i.ProductId == variant.ProductId);
+
+    if (newValue <= 0)
+    {
+        if (existing != null) Items.Remove(existing);
+    }
+    else
+    {
+        // Cap the value at the maximum available stock
+        if (newValue > variant.StockAvailable)
+        {
+            newValue = variant.StockAvailable;
+            Snackbar.Add($"Capped at available stock ({variant.StockAvailable})", Severity.Warning);
+        }
+
+        if (existing == null)
+        {
+            Items.Add(new TransferBoxItemModel { ProductId = variant.ProductId, Quantity = newValue });
+        }
+        else
+        {
+            existing.Quantity = newValue;
+        }
+    }
+    StateHasChanged();
+}
+
+    public class GroupedProduct {
+        public string ParentName { get; set; } = "";
+        public List<VariantInfo> Variants { get; set; } = new();
+    }
+
+    public class VariantInfo {
+        public int ProductId { get; set; }
+        public string VariantName { get; set; } = "";
+        public int StockAvailable { get; set; }
+    }
+}

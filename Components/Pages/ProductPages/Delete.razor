@@ -4,6 +4,8 @@
 @rendermode InteractiveServer
 @inject IDbContextFactory<ApplicationDbContext> DbFactory
 @inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+@inject IWebHostEnvironment WebHostEnvironment
 
 <PageTitle>Delete Product</PageTitle>
 
@@ -51,7 +53,6 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // FIX: Use Async context creation
         using var context = await DbFactory.CreateDbContextAsync();
         Product = await context.Products.FirstOrDefaultAsync(m => m.Id == Id);
 
@@ -62,38 +63,68 @@
     }
 
     private async Task DeleteProduct()
+{
+    using var context = await DbFactory.CreateDbContextAsync();
+    
+    var productToDelete = await context.Products
+        .Include(p => p.Inventories)
+        .Include(p => p.Image)        
+        .FirstOrDefaultAsync(p => p.Id == Id);
+
+    if (productToDelete != null)
     {
-        using var context = await DbFactory.CreateDbContextAsync();
-        
-        // 1. Capture info for redirect before deleting
-        var parentId = Product?.ParentProductId;
+        var imageFileName = productToDelete.Image?.FileName;
+        var imageId = productToDelete.ImageId;
+        var isParent = productToDelete.ParentProductId == null;
 
-        // 2. Fetch with related data to avoid foreign key crashes
-        var productToDelete = await context.Products
-            .Include(p => p.Inventories)
-            .FirstOrDefaultAsync(p => p.Id == Id);
-
-        if (productToDelete != null)
+        try 
         {
-            // FIX: Use context.RemoveRange directly. 
-            // This allows EF to handle the ICollection<Inventory> type correctly.
+            var variants = await context.Products
+                .Where(v => v.ParentProductId == productToDelete.Id)
+                .Include(v => v.Inventories)
+                .ToListAsync();
+
+            foreach (var variant in variants)
+            {
+                if (variant.Inventories != null && variant.Inventories.Any())
+                {
+                    context.Inventories.RemoveRange(variant.Inventories);
+                }
+                context.Products.Remove(variant);
+            }
+
             if (productToDelete.Inventories != null && productToDelete.Inventories.Any())
             {
-                context.RemoveRange(productToDelete.Inventories);
+                context.Inventories.RemoveRange(productToDelete.Inventories);
             }
-            
-            context.Products.Remove(productToDelete);
-            await context.SaveChangesAsync();
-        }
 
-        // 3. Smart Redirect
-        if (parentId.HasValue)
-        {
-            NavigationManager.NavigateTo($"/Products/details/{parentId.Value}");
+            context.Products.Remove(productToDelete);
+            
+            await context.SaveChangesAsync();
+
+            if (isParent && imageId != null && !string.IsNullOrEmpty(imageFileName))
+            {
+                var imagePath = Path.Combine(WebHostEnvironment.WebRootPath, "images", "products", imageFileName);
+                if (System.IO.File.Exists(imagePath))
+                    System.IO.File.Delete(imagePath);
+
+                var imageRecord = await context.Images.FindAsync(imageId);
+                if (imageRecord != null)
+                {
+                    context.Images.Remove(imageRecord);
+                    await context.SaveChangesAsync();
+                }
+            }
+
+            NavigationManager.NavigateTo("/products");
         }
-        else
+        catch (Exception ex)
         {
-            NavigationManager.NavigateTo("/Products");
+            var innerMessage = ex.InnerException?.Message ?? ex.Message;
+            Console.WriteLine($"DATABASE REJECTED DELETE: {innerMessage}");
+            Snackbar.Add($"Cannot delete: {innerMessage}", MudBlazor.Severity.Error);
         }
     }
+}
+
 }

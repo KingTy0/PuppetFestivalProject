@@ -1,4 +1,5 @@
 @page "/products/create"
+@page "/products/create/{Id:int}"
 @using Microsoft.EntityFrameworkCore
 @using PuppetFestAPP.Web.Data
 @using PuppetFestAPP.Web.Models
@@ -6,6 +7,7 @@
 @inject NavigationManager NavigationManager
 @inject IWebHostEnvironment Environment
 @inject ISnackbar Snackbar
+@rendermode InteractiveServer
 
 <PageTitle>@(parentId.HasValue ? "Create Variant" : "Create Product")</PageTitle>
 
@@ -40,7 +42,8 @@
                    Variant="Variant.Outlined"
                    Class="mb-3"
                    FullWidth="true"
-                   AnchorOrigin="Origin.BottomCenter">
+                   AnchorOrigin="Origin.BottomLeft"
+                   TransformOrigin="Origin.TopLeft">
             <MudSelectItem T="int" Value="0">-- Select Category --</MudSelectItem>
             @foreach (var cat in Categories)
             {
@@ -82,68 +85,47 @@
             @foreach (var size in Enum.GetValues<ProductSize>())
             {
                 <MudItem xs="6">
-                    <MudCheckBox T="bool"
-                                 Value="@(Form.Size == size)"
-                                 ValueChanged="@(v => { if (v) Form.Size = size; })"
-                                 Label="@size.ToString()"
-                                 Color="Color.Primary"
-                                 Size="Size.Small"
-                                 Class="mb-1" />
-                </MudItem>
+        <MudCheckBox T="bool"
+                     Value="@Form.SelectedSizes.Contains(size)"
+                     ValueChanged="@(v => OnSizeToggled(size, v))"
+                     Label="@size.ToString()"
+                     Color="Color.Primary"
+                     Size="Size.Small" />
+        </MudItem>
             }
         </MudGrid>
 
-        <MudText Typo="Typo.subtitle1" Style="font-weight: 700; margin-bottom: 12px;">
-            Select Color (Optional):
-        </MudText>
-
-        <MudGrid Spacing="0" Class="mb-4">
-            @foreach (var color in Enum.GetValues<ProductColor>())
-            {
-                <MudItem xs="6">
-                    <MudCheckBox T="bool"
-                                 Value="@(Form.Color == color)"
-                                 ValueChanged="@(v => { if (v) Form.Color = color; })"
-                                 Label="@color.ToString()"
-                                 Color="Color.Primary"
-                                 Size="Size.Small"
-                                 Class="mb-1" />
-                </MudItem>
-            }
-        </MudGrid>
+        
 
         <MudText Typo="Typo.subtitle1" Style="font-weight: 700; margin-bottom: 12px;">
             Images
         </MudText>
 
         <MudPaper Outlined="true" Class="pa-4 mb-3" Style="border-radius: 8px;">
-            @if (!string.IsNullOrEmpty(uploadedFileName))
-            {
-                <MudImage Src="@($"/images/products/{uploadedFileName}")"
-                          Height="100"
-                          ObjectFit="ObjectFit.Cover"
-                          Style="border-radius: 8px; margin-bottom: 8px;" />
-            }
-            else
-            {
-                <MudText Typo="Typo.body2" Color="Color.Default" Style="margin-bottom: 8px; color: #aaa;">
-                    Upload Image Here
-                </MudText>
-            }
+    @if (!string.IsNullOrEmpty(imagePreviewBase64))
+    {
+        <MudImage Src="@imagePreviewBase64"
+                  Height="150"
+                  ObjectFit="ObjectFit.Contain"
+                  Style="border-radius: 8px; margin-bottom: 8px; width: 100%;" />
+        <MudText Typo="Typo.caption" Color="Color.Success" Class="mb-2">
+            <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small" /> 
+            Image ready!
+        </MudText>
+    }
+    else
+    {
+        <MudText Typo="Typo.body2" Style="margin-bottom: 8px; color: #aaa;">
+            Upload Image Here
+        </MudText>
+    }
 
-            @if (isUploading)
-            {
-                <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mb-2" />
-                <MudText Typo="Typo.caption" Color="Color.Info">Uploading...</MudText>
-            }
-
-            @if (!string.IsNullOrEmpty(uploadedFileName))
-            {
-                <MudText Typo="Typo.caption" Color="Color.Success" Class="mb-2">
-                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small" /> Image uploaded successfully!
-                </MudText>
-            }
-        </MudPaper>
+    @if (isUploading)
+    {
+        <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mb-2" />
+        <MudText Typo="Typo.caption" Color="Color.Info">Uploading...</MudText>
+    }
+</MudPaper>
 
         <MudStack Row="true" Spacing="2" Class="mb-6">
             <label for="filePickerInput">
@@ -202,7 +184,7 @@
 </MudContainer>
 
 @code {
-    [SupplyParameterFromForm]
+    
     public ProductFormModel Form { get; set; } = new();
 
     [SupplyParameterFromQuery]
@@ -211,95 +193,191 @@
     private List<Category> Categories = new();
     private bool isUploading = false;
     private string? uploadedFileName;
+    private string? previewImageUrl;
 
-    protected override async Task OnInitializedAsync()
+    private string? imagePreviewBase64;
+
+    [Parameter]
+    public int Id { get; set; }
+
+   protected override async Task OnInitializedAsync()
     {
         using var context = await DbFactory.CreateDbContextAsync();
         Categories = await context.Categories.ToListAsync();
 
-        if (parentId.HasValue && string.IsNullOrEmpty(Form.Name))
+        if (parentId.HasValue && parentId > 0)
         {
-            var parent = await context.Products.FindAsync(parentId.Value);
+            var parent = await context.Products
+                .Include(p => p.Image)
+                .FirstOrDefaultAsync(p => p.Id == parentId);
+
             if (parent != null)
             {
-                Form.ParentProductId = parent.Id;
                 Form.Name = parent.Name;
-                Form.CategoryId = parent.CategoryId;
+                Form.Description = parent.Description;
                 Form.Price = parent.Price;
+                Form.CategoryId = parent.CategoryId;
+                Form.ImageId = parent.ImageId;
+
+                if (parent.Image != null)
+                {
+                    previewImageUrl = $"/images/products/{parent.Image.FileName}";
+                }
             }
         }
     }
 
-    private async Task LoadFiles(InputFileChangeEventArgs e)
+private void OnSizeToggled(ProductSize size, bool isChecked)
+{
+    if (size == ProductSize.NA && isChecked)
     {
-        var file = e.File;
-        if (file != null)
-        {
-            isUploading = true;
-            StateHasChanged();
-
-            var newName = Guid.NewGuid().ToString() + Path.GetExtension(file.Name);
-            Form.ImageFileName = newName;
-            uploadedFileName = newName;
-
-            var path = Path.Combine(Environment.WebRootPath, "images", "products", newName);
-            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-
-            await using FileStream fs = new(path, FileMode.Create);
-            await file.OpenReadStream(maxAllowedSize: 1024 * 1024 * 10).CopyToAsync(fs);
-
-            isUploading = false;
-            StateHasChanged();
-        }
+        
+        Form.SelectedSizes.Clear();
+        Form.SelectedSizes.Add(ProductSize.NA);
     }
+    else if (isChecked)
+    {
+        
+        Form.SelectedSizes.Remove(ProductSize.NA);
+        if (!Form.SelectedSizes.Contains(size)) Form.SelectedSizes.Add(size);
+    }
+    else
+    {
+        Form.SelectedSizes.Remove(size);
+    }
+}
+
+
+
+  private async Task LoadFiles(InputFileChangeEventArgs e)
+{
+    var file = e.File;
+    if (file != null)
+    {
+        isUploading = true;
+        StateHasChanged();
+
+        using var memoryStream = new MemoryStream();
+        await file.OpenReadStream(maxAllowedSize: 1024 * 1024 * 10).CopyToAsync(memoryStream);
+        var bytes = memoryStream.ToArray();
+
+        var mimeType = file.ContentType;
+        imagePreviewBase64 = $"data:{mimeType};base64,{Convert.ToBase64String(bytes)}";
+
+        var tempName = $"{Guid.NewGuid()}{Path.GetExtension(file.Name)}";
+        var tempPath = Path.Combine(Path.GetTempPath(), "puppetfest_uploads", tempName);
+        Directory.CreateDirectory(Path.GetDirectoryName(tempPath)!);
+        await System.IO.File.WriteAllBytesAsync(tempPath, bytes);
+
+        uploadedFileName = tempName;
+
+        isUploading = false;
+        StateHasChanged();
+    }
+}
 
     private void ClearImage()
+{
+    uploadedFileName = null;
+    Form.ImageFileName = null;
+    imagePreviewBase64 = null;
+}
+
+  private async Task AddProduct()
+{
+    using var context = await DbFactory.CreateDbContextAsync();
+    Product? parentProduct = null;
+
+    if (parentId.HasValue && parentId > 0)
     {
-        uploadedFileName = null;
-        Form.ImageFileName = null;
+        parentProduct = await context.Products.FindAsync(parentId.Value);
     }
 
-    private async Task AddProduct()
+    if (parentProduct == null)
     {
-        if (Form.CategoryId == 0)
-        {
-            Snackbar.Add("Please select a category.", Severity.Warning);
-            return;
-        }
+        parentProduct = new Product {
+            Name = Form.Name,
+            Price = Form.Price,
+            Description = Form.Description ?? "",
+            CategoryId = Form.CategoryId,
+            Size = ProductSize.NA, 
+            Color = ProductColor.NA,
+            IsActive = true,
+            DateAdded = DateTime.Now
+        };
+        context.Products.Add(parentProduct);
+        await context.SaveChangesAsync(); 
+    }
+    else 
+    {
+        parentProduct.Price = Form.Price;
+        parentProduct.Description = Form.Description;
+        await context.SaveChangesAsync();
+    }
 
-        using var context = await DbFactory.CreateDbContextAsync();
-        int? finalImageId = null;
+   
+    if (!string.IsNullOrEmpty(uploadedFileName))
+    {
+        var tempPath = Path.Combine(Path.GetTempPath(), "puppetfest_uploads", uploadedFileName);
+        var finalPath = Path.Combine(Environment.WebRootPath, "images", "products", uploadedFileName);
 
-        if (!string.IsNullOrEmpty(uploadedFileName))
+        if (System.IO.File.Exists(tempPath))
         {
-            var newImg = new PuppetFestAPP.Web.Models.Image
+            
+            Directory.CreateDirectory(Path.GetDirectoryName(finalPath)!);
+            
+          
+            System.IO.File.Move(tempPath, finalPath); 
+            
+           
+           var newImage = new PuppetFestAPP.Web.Models.Image
             {
                 FileName = uploadedFileName,
                 AltText = Form.Name
             };
-            context.Images.Add(newImg);
+            context.Images.Add(newImage);
+            await context.SaveChangesAsync(); 
+            
+           
+            parentProduct.ImageId = newImage.Id;
             await context.SaveChangesAsync();
-            finalImageId = newImg.Id;
         }
-
-        var newProduct = new Product
-        {
-            Name = Form.Name,
-            Price = Form.Price,
-            CategoryId = Form.CategoryId,
-            ParentProductId = Form.ParentProductId ?? parentId,
-            Size = Form.Size ?? ProductSize.NA,
-            Color = Form.Color ?? ProductColor.NA,
-            DateAdded = DateTime.Now,
-            IsActive = true,
-            Description = Form.Description ?? "",
-            ImageId = finalImageId
-        };
-
-        context.Products.Add(newProduct);
-        await context.SaveChangesAsync();
-
-        Snackbar.Add("Product saved successfully!", Severity.Success);
-        NavigationManager.NavigateTo("/products");
     }
+
+ 
+    if (Form.SelectedSizes.Any())
+{
+    var sizes = Form.SelectedSizes.Where(s => s != ProductSize.NA).ToList();
+    if (!sizes.Any()) sizes.Add(ProductSize.NA);
+
+    foreach (var s in sizes)
+    {
+        bool exists = await context.Products.AnyAsync(p =>
+            p.ParentProductId == parentProduct.Id && p.Size == s);
+
+        if (!exists)
+        {
+            context.Products.Add(new Product
+            {
+                Name = $"{parentProduct.Name} ({s})",
+                ParentProductId = parentProduct.Id,
+                Price = Form.Price,
+                CategoryId = parentProduct.CategoryId,
+                Size = s,
+                Color = ProductColor.NA,
+                ImageId = parentProduct.ImageId,
+                Description = parentProduct.Description,
+                IsActive = true,
+                DateAdded = DateTime.Now
+            });
+        }
+    }
+    await context.SaveChangesAsync();
+}
+
+    Snackbar.Add("Changes saved successfully!", Severity.Success);
+    NavigationManager.NavigateTo($"/products/details/{parentProduct.Id}");
+}
+
+
 }

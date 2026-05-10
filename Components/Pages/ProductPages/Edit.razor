@@ -5,6 +5,7 @@
 @rendermode InteractiveServer
 @inject IDbContextFactory<ApplicationDbContext> DbFactory
 @inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
 
 <MudContainer MaxWidth="MaxWidth.Small" Class="mt-6 mb-10">
     @* --- TOP NAVIGATION --- *@
@@ -48,26 +49,39 @@
                              Class="mb-8" />
 
             @* --- SECTION: SIZE SELECTION (Matches image_89445a.png) --- *@
-            <MudText Typo="Typo.h6" Class="mb-2">Select Available Sizes:</MudText>
-            <MudGrid Spacing="1" Class="mb-8">
-                @foreach (var size in Enum.GetValues<ProductSize>().Where(s => s != ProductSize.NA))
-                {
-                    <MudItem xs="6">
-                        <MudCheckBox T="bool" Label="@GetFriendlySizeName(size)" Color="Color.Primary" />
-                    </MudItem>
-                }
-            </MudGrid>
+           @* --- SECTION: SIZE SELECTION --- *@
+<MudText Typo="Typo.h6" Class="mb-2">Select Available Size:</MudText>
+<MudGrid Spacing="1" Class="mb-8">
+    @foreach (var size in Enum.GetValues<ProductSize>().Where(s => s != ProductSize.NA))
+    {
+        <MudItem xs="6">
+            <MudCheckBox T="bool" 
+                         Value="@Form.SelectedSizes.Contains(size)"
+                         ValueChanged="@(v => OnSizeToggled(size, v))"
+                         Label="@GetFriendlySizeName(size)" 
+                         Color="Color.Primary" />
+        </MudItem>
+    }
+</MudGrid>
 
             @* --- ACTIONS --- *@
-            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" 
-                       Color="Color.Primary" FullWidth="true" Size="Size.Large" Class="py-3">
-                SAVE CHANGES
-            </MudButton>
-            
-            <MudButton OnClick="HandleCancel" Variant="Variant.Text" 
-                       Color="Color.Secondary" FullWidth="true" Class="mt-2">
-                Cancel
-            </MudButton>
+            @* --- ACTIONS --- *@
+<MudStack Row="true" Spacing="2" Class="mt-8">
+    <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" 
+               Color="Color.Primary" FullWidth="true" Size="Size.Large" Class="py-3">
+        SAVE CHANGES
+    </MudButton>
+
+    <MudButton OnClick="DeleteThisVariant" Variant="Variant.Outlined" 
+               Color="Color.Error" FullWidth="true" Size="Size.Large" Class="py-3">
+        DELETE VARIANT
+    </MudButton>
+</MudStack>
+
+<MudButton OnClick="HandleCancel" Variant="Variant.Text" 
+           Color="Color.Secondary" FullWidth="true" Class="mt-2">
+    Cancel
+</MudButton>
         </EditForm>
     }
 </MudContainer>
@@ -81,57 +95,101 @@
     private List<Category> Categories = new();
 
     protected override async Task OnInitializedAsync()
-    {
-        using var context = await DbFactory.CreateDbContextAsync();
-        Categories = await context.Categories.ToListAsync();
+{
+    using var context = await DbFactory.CreateDbContextAsync();
+    Categories = await context.Categories.ToListAsync();
 
-        if (Form is null)
+    if (Form is null)
+    {
+        var product = await context.Products.FindAsync(Id);
+        if (product is null)
         {
-            var product = await context.Products.FindAsync(Id);
-            if (product is null)
+            NavigationManager.NavigateTo("/products");
+            return;
+        }
+
+        Form = new ProductFormModel
+        {
+            Name = product.Name,
+            Price = product.Price,
+            CategoryId = product.CategoryId,
+            Description = product.Description,
+            ParentProductId = product.ParentProductId
+        };
+
+       
+        Form.SelectedSizes.Add(product.Size ?? ProductSize.NA);
+        Form.SelectedColors.Add(product.Color ?? ProductColor.NA);
+    }
+}
+
+private void OnSizeToggled(ProductSize size, bool isChecked)
+{
+    Form.SelectedSizes.Clear();
+    if (isChecked) Form.SelectedSizes.Add(size);
+}
+
+private async Task DeleteThisVariant()
+{
+    using var context = await DbFactory.CreateDbContextAsync();
+    var productToDelete = await context.Products
+    .Include(p => p.Inventories)
+    .FirstOrDefaultAsync(p => p.Id == Id);
+
+    if (productToDelete != null)
+    {
+        try
+        {
+            if (productToDelete.Inventories != null && productToDelete.Inventories.Any())
             {
-                NavigationManager.NavigateTo("/products");
-                return;
+                context.Inventories.RemoveRange(productToDelete.Inventories);
             }
 
-            Form = new ProductFormModel
-            {
-                Name = product.Name,
-                Price = product.Price,
-                CategoryId = product.CategoryId,
-                Description = product.Description,
-                ParentProductId = product.ParentProductId,
-                Size = product.Size,
-                Color = product.Color
-            };
+            context.Products.Remove(productToDelete);
+            await context.SaveChangesAsync();
+
+            Snackbar.Add("Variant deleted successfully.", MudBlazor.Severity.Success);
+            HandleNavigation(productToDelete.ParentProductId);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error deleting: {ex.Message}", MudBlazor.Severity.Error);
         }
     }
+}
 
     private async Task UpdateProduct()
+{
+    using var context = await DbFactory.CreateDbContextAsync();
+    var product = await context.Products.FindAsync(Id);
+
+    if (product != null && Form != null)
     {
-        using var context = await DbFactory.CreateDbContextAsync();
-        var product = await context.Products.FindAsync(Id);
+        product.Name = Form.Name;
+        product.Price = Form.Price;
+        product.CategoryId = Form.CategoryId;
+        product.Description = Form.Description ?? "";
 
-        if (product != null && Form != null)
+        product.Size = Form.SelectedSizes.Any() 
+            ? Form.SelectedSizes.First() 
+            : ProductSize.NA;
+
+        product.Color = Form.SelectedColors.Any() 
+            ? Form.SelectedColors.First() 
+            : ProductColor.NA;
+
+        try
         {
-            product.Name = Form.Name;
-            product.Price = Form.Price;
-            product.CategoryId = Form.CategoryId;
-            product.Description = Form.Description ?? "";
-            product.Size = Form.Size;
-            product.Color = Form.Color;
-
-            try
-            {
-                await context.SaveChangesAsync();
-                HandleNavigation(product.ParentProductId);
-            }
-            catch (Exception ex) when (ex is not Microsoft.AspNetCore.Components.NavigationException)
-            {
-                Console.WriteLine($"Error: {ex.Message}");
-            }
+            await context.SaveChangesAsync();
+            
+            HandleNavigation(product.ParentProductId);
+        }
+        catch (Exception ex) when (ex is not NavigationException)
+        {
+            Snackbar.Add($"Error saving: {ex.Message}", MudBlazor.Severity.Error);
         }
     }
+}
 
     private void HandleCancel() => HandleNavigation(Form?.ParentProductId);
 

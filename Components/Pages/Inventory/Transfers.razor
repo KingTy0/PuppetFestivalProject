@@ -2,7 +2,11 @@
 @using Microsoft.EntityFrameworkCore
 @using PuppetFestAPP.Web.Data
 @using System.Linq
+@using MudBlazor
 @rendermode InteractiveServer
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
 @inject IDbContextFactory<ApplicationDbContext> DbFactory
 
 <PageTitle>Transfer Boxes</PageTitle>
@@ -61,12 +65,22 @@
                                                Href="@($"/inventory/transfer/details/{box.Id}")">
                                         View
                                     </MudButton>
-                                    <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                                               Size="Size.Small" Class="ml-auto"
-                                               StartIcon="@Icons.Material.Filled.LocalShipping"
-                                              OnClick="async () => await PickUpBox(box.Id)">
-                                        Pick Up
-                                    </MudButton>
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" 
+                                    Color="Color.Error" 
+                                    Size="Size.Small"
+                                    Class="mx-2"
+                                    OnClick="@(() => ExecuteDelete(box.Id))" />
+
+                                    <AuthorizeView Roles="VanDriver">
+                                        <Authorized>
+                                            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                                                    Size="Size.Small" Class="ml-auto"
+                                                    StartIcon="@Icons.Material.Filled.LocalShipping"
+                                                    OnClick="@(() => InitiatePickUp(box.Id))">
+                                                Pick Up
+                                            </MudButton>
+                                        </Authorized>
+                                    </AuthorizeView>
                                 </MudCardActions>
                             </MudCard>
                         </MudItem>
@@ -224,9 +238,50 @@
         </MudTabPanel>
 
     </MudTabs>
+    @if (showVanPicker)
+{
+    <MudOverlay Visible="true" DarkBackground="true" ZIndex="1000">
+        <MudPaper Class="pa-6" Style="min-width: 320px;">
+            <MudText Typo="Typo.h6" Class="mb-4">Select Your Van</MudText>
+            <MudText Typo="Typo.body2" Class="mb-4">
+                Which van are you currently driving?
+            </MudText>
+
+            <MudSelect T="int?" Label="Your Van"
+                       @bind-Value="selectedVanId"
+                       Variant="Variant.Outlined"
+                       Class="mb-6">
+                <MudSelectItem T="int?" Value="null">-- Select Van --</MudSelectItem>
+                @foreach (var van in Vans)
+                {
+                    <MudSelectItem T="int?" Value="@((int?)van.Id)">@van.Name</MudSelectItem>
+                }
+            </MudSelect>
+
+            <MudStack Row="true" Justify="Justify.SpaceBetween">
+                <MudButton Variant="Variant.Outlined"
+                           Color="Color.Default"
+                           OnClick="@(() => showVanPicker = false)">
+                    Cancel
+                </MudButton>
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           Disabled="@(!selectedVanId.HasValue)"
+                           OnClick="ConfirmPickUp">
+                    Confirm Pick Up
+                </MudButton>
+            </MudStack>
+        </MudPaper>
+    </MudOverlay>
+}
 </MudContainer>
 
 @code {
+
+    private List<Location> Vans = new();
+    private bool showVanPicker = false;
+    private int? selectedVanId;
+    private int pendingPickupBoxId;
     private List<StockTransferBox> TransferBoxes = new();
 
     // Derived lists — no extra DB queries needed
@@ -238,7 +293,14 @@
 
     Microsoft.AspNetCore.Components.QuickGrid.PaginationState pagination = new() { ItemsPerPage = 20 };
 
-    protected override async Task OnInitializedAsync() => await LoadData();
+    protected override async Task OnInitializedAsync()
+{
+    using var db = await DbFactory.CreateDbContextAsync();
+    Vans = await db.Locations
+        .Where(l => l.Type == LocationType.Van && l.IsActive)
+        .ToListAsync();
+    await LoadData();
+}
 
     private async Task LoadData()
     {
@@ -251,16 +313,34 @@
             .ToListAsync();
     }
 
-    private async Task PickUpBox(int boxId)
-    {
-        using var context = await DbFactory.CreateDbContextAsync();
-        var box = await context.StockTransferBoxes.FindAsync(boxId);
-        if (box == null || box.IsPickedUp || box.IsDelivered) return;
+    private void InitiatePickUp(int boxId)
+{
+    pendingPickupBoxId = boxId;
+    selectedVanId = null;
+    showVanPicker = true;
+}
 
-        box.IsPickedUp = true;
-        await context.SaveChangesAsync();
-        await LoadData();
-    }
+private async Task ConfirmPickUp()
+{
+    if (!selectedVanId.HasValue) return;
+
+    
+    var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+    var driverName = authState.User.Identity?.Name ?? "Unknown Driver";
+
+    using var context = await DbFactory.CreateDbContextAsync();
+    var box = await context.StockTransferBoxes.FindAsync(pendingPickupBoxId);
+    if (box == null || box.IsPickedUp || box.IsDelivered) return;
+
+    box.IsPickedUp = true;
+    box.PickedUpByVanId = selectedVanId;
+    box.PickedUpAt = DateTime.UtcNow;
+    box.PickedUpByDriverName = driverName;
+    await context.SaveChangesAsync();
+
+    showVanPicker = false;
+    await LoadData();
+}
 
     private async Task DeliverBox(int boxId)
     {
@@ -306,4 +386,52 @@
         await context.SaveChangesAsync();
         await LoadData();
     }
+
+
+private async Task ExecuteDelete(int id)
+{
+    using var context = await DbFactory.CreateDbContextAsync();
+    
+    // We need to include Items and ProductLocations to handle the refund
+    var box = await context.StockTransferBoxes
+        .Include(b => b.Items)
+        .FirstOrDefaultAsync(b => b.Id == id);
+
+    if (box == null) return;
+
+    try 
+    {
+        foreach (var item in box.Items)
+        {
+            var sourceStock = await context.ProductLocations
+                .FirstOrDefaultAsync(pl => pl.LocationId == box.FromLocationId && pl.ProductId == item.ProductId);
+
+            if (sourceStock != null)
+            {
+                sourceStock.Quantity += item.Quantity;
+            }
+            else
+            {
+                context.ProductLocations.Add(new ProductLocation 
+                { 
+                    LocationId = box.FromLocationId, 
+                    ProductId = item.ProductId, 
+                    Quantity = item.Quantity,
+                    LastUpdated = DateTime.UtcNow
+                });
+            }
+        }
+
+        context.StockTransferBoxes.Remove(box);
+        await context.SaveChangesAsync();
+        
+        Snackbar.Add("Transfer deleted and stock refunded.", Severity.Info);
+        await LoadData();
+    }
+    catch (Exception ex)
+    {
+        Snackbar.Add("Error: Could not delete transfer.", Severity.Error);
+    }
+}
+
 }

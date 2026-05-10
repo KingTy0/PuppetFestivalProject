@@ -23,6 +23,8 @@ public static class AppRoles
     /// <summary>Can process sales at a merch stand during the festival.</summary>
     public const string SalesStaff = "SalesStaff";
 
+    public const string VanDriver = "VanDriver";
+
     /// <summary>
     /// Array of all role names. Used by the database seeder to create
     /// roles on first run, and by UI components to populate dropdowns.
@@ -31,6 +33,7 @@ public static class AppRoles
     {
         Admin,
         InventoryManager,
-        SalesStaff
+        SalesStaff,
+        VanDriver
     };
 }

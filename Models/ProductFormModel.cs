@@ -16,10 +16,11 @@ public class ProductFormModel
 
     public string? Description { get; set; }
     public int? ParentProductId { get; set; }
-
     public string? ImageFileName { get; set; }
+
+    public int? ImageId { get; set; }
     
-    // Only define these once!
-    public ProductSize? Size { get; set; } = ProductSize.NA;
-    public ProductColor? Color { get; set; } = ProductColor.NA;
+    // CHANGE: Use Lists to store multiple selections for the matrix
+    public List<ProductSize> SelectedSizes { get; set; } = new();
+    public List<ProductColor> SelectedColors { get; set; } = new();
 }

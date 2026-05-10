@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using PuppetFestAPP.Web.Data;
 
@@ -10,9 +11,11 @@ using PuppetFestAPP.Web.Data;
 namespace PuppetFestAPP.Web.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260510084015_AddVanPickupTracking")]
+    partial class AddVanPickupTracking
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.9");
@@ -418,24 +421,12 @@ namespace PuppetFestAPP.Web.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("TEXT");
 
-                    b.Property<DateTime?>("PickedUpAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("PickedUpByDriverName")
-                        .HasMaxLength(200)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int?>("PickedUpByVanId")
-                        .HasColumnType("INTEGER");
-
                     b.Property<int>("ToLocationId")
                         .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
 
                     b.HasIndex("FromLocationId");
-
-                    b.HasIndex("PickedUpByVanId");
 
                     b.HasIndex("ToLocationId");
 
@@ -618,10 +609,6 @@ namespace PuppetFestAPP.Web.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("PuppetFestAPP.Web.Data.Location", "PickedUpByVan")
-                        .WithMany()
-                        .HasForeignKey("PickedUpByVanId");
-
                     b.HasOne("PuppetFestAPP.Web.Data.Location", "ToLocation")
                         .WithMany()
                         .HasForeignKey("ToLocationId")
@@ -629,8 +616,6 @@ namespace PuppetFestAPP.Web.Migrations
                         .IsRequired();
 
                     b.Navigation("FromLocation");
-
-                    b.Navigation("PickedUpByVan");
 
                     b.Navigation("ToLocation");
                 });

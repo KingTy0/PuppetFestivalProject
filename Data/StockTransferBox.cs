@@ -14,12 +14,20 @@ public class StockTransferBox
     [MaxLength(500)]
     public string? Notes { get; set; }
 
-    public bool IsPickedUp { get; set; } = false;  // ADD THIS LINE
-    
+    public bool IsPickedUp { get; set; } = false;
+
+    // New fields for van driver tracking
+    public int? PickedUpByVanId { get; set; }
+    [MaxLength(200)]
+    public string? PickedUpByDriverName { get; set; }
+    public DateTime? PickedUpAt { get; set; }
+
     [ValidateNever]
     public Location FromLocation { get; set; } = null!;
     [ValidateNever]
     public Location ToLocation { get; set; } = null!;
+    [ValidateNever]
+    public Location? PickedUpByVan { get; set; }
 
     public bool IsDelivered { get; set; } = false;
     public string Status => IsDelivered ? "Delivered" : IsPickedUp ? "In Transit" : "Pending";
