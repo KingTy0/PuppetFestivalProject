@@ -27,11 +27,12 @@
                 Variant="Variant.Filled" 
                 Color="Color.Primary"
                 FullWidth="true"
-                Size="Size.Large">
+                Size="Size.Large"
+                Class="mb-5">
         Create a User
     </MudButton>
 
-    <MudText Class="mb-2">
+    <MudText Class="mb-5">
         <h3>All Users (@users.Count)</h3>
     </MudText>
     <MudDivider Class="mb-5"></MudDivider>
@@ -72,7 +73,7 @@
         </MudExpansionPanel>
 
         @* Inventory Manager Role -- Expansion Panel *@
-        <MudExpansionPanel Text="@($"Inventory Manager ({InventoryManagers.Count()})")" Expanded="true">
+        <MudExpansionPanel Text="@($"Inventory Managers ({InventoryManagers.Count()})")" Expanded="true">
             <MudList T="string">
                 @foreach (var im in InventoryManagers)
                 {
@@ -138,6 +139,37 @@
         </MudExpansionPanel>
 
         @* Driver Role -- Expansion Panel *@
+        <MudExpansionPanel Text="@($"Van Drivers ({VanDrivers.Count()})")" Expanded="true">
+            <MudList T="string">
+                @foreach (var vd in VanDrivers)
+                {
+                    <MudListItem Class="px-1">
+                        <div class="d-flex align-center justify-space-between">
+                            <MudText Typo="Typo.body1"><p>@vd.Email</p></MudText>
+                            <div>
+                                <MudTooltip Text="Edit User">
+                                    <MudIconButton OnClick="@(() => NavigationManager.NavigateTo($"/admin/users/{vd.Id}/edit"))"
+                                    Icon="@Icons.Material.Filled.Edit"
+                                    Variant="Variant.Filled" 
+                                    Color="Color.Default" 
+                                    Class="mr-2"
+                                    />
+                                </MudTooltip>
+                                <MudTooltip Text="Delete User">
+                                    <MudIconButton OnClick="@(() => ConfirmDelete(vd))"
+                                    Disabled="@(vd.Email == "admin@puppetfest.local")"
+                                    Icon="@Icons.Material.Filled.Delete" 
+                                    Variant="Variant.Filled" 
+                                    Color="Color.Default" 
+                                    Class="mr-2" />
+                                </MudTooltip>
+                            </div>
+                        </div>
+                    </MudListItem>
+                    <MudDivider />
+                }
+            </MudList>
+        </MudExpansionPanel>
     </MudExpansionPanels>
 
 
@@ -267,6 +299,10 @@
 
     private IEnumerable<UserViewModel> SalesStaffs =>
         users?.Where(u => u.Roles.Any(r => r.Equals("SalesStaff", StringComparison.OrdinalIgnoreCase)))
+        ?? Enumerable.Empty<UserViewModel>();
+
+    private IEnumerable<UserViewModel> VanDrivers =>
+        users?.Where(u => u.Roles.Any(r => r.Equals("VanDriver", StringComparison.OrdinalIgnoreCase)))
         ?? Enumerable.Empty<UserViewModel>();
 
     // Status message switches
