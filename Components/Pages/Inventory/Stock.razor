@@ -1,0 +1,68 @@
+@page "/inventory/stock"
+@attribute [Authorize]
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using PuppetFestAPP.Web.Data
+@using System.Linq
+@rendermode InteractiveServer
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+
+<PageTitle>Stock Levels</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Stock Levels</MudText>
+
+@if (StockData?.Any() == true)
+{
+    @foreach (var locGroup in StockData.GroupBy(x => x.Location))
+    {
+        <MudPaper Elevation="2" Class="mb-6">
+            <MudToolBar>
+                <MudText Typo="Typo.h6">
+                    @locGroup.Key.Name (@locGroup.Key.Type) - Total: @locGroup.Sum(x => x.Quantity)
+                </MudText>
+                <MudSpacer />
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Edit"
+                           href="@($"/inventory/adjust/{locGroup.Key.Id}")">
+                    End of Day Adjustment
+                </MudButton>
+            </MudToolBar>
+
+            <div class="pa-4">
+                @* 1. Using FULL Namespace to bypass Alias/Unexpected Name errors *@
+                <Microsoft.AspNetCore.Components.QuickGrid.QuickGrid Items="@locGroup.AsQueryable()" TGridItem="ProductLocation">
+                    
+                    @* 2. Simplified PropertyColumns to fix Lambda Delegate errors *@
+                    <Microsoft.AspNetCore.Components.QuickGrid.PropertyColumn Title="Product" 
+                        Property="@(pl => pl.Product != null ? pl.Product.Name : "Unknown")" Sortable="true" />
+
+                    <Microsoft.AspNetCore.Components.QuickGrid.PropertyColumn Title="Details" 
+                        Property="@(pl => pl.Product != null ? $"{pl.Product.Size} / {pl.Product.Color}" : "-")" />
+
+                    <Microsoft.AspNetCore.Components.QuickGrid.PropertyColumn Title="Qty" 
+                        Property="@(pl => pl.Quantity)" Sortable="true" />
+
+                </Microsoft.AspNetCore.Components.QuickGrid.QuickGrid>
+            </div>
+        </MudPaper>
+    }
+}
+else
+{
+    <MudAlert Severity="Severity.Info">No stock records yet. Create some transfers to populate inventory!</MudAlert>
+}
+
+@code {
+    private List<ProductLocation> StockData = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var db = await DbFactory.CreateDbContextAsync();
+        StockData = await db.ProductLocations
+            .Include(pl => pl.Product)
+            .Include(pl => pl.Location)
+            .Where(pl => pl.Quantity > 0)
+            .OrderBy(pl => pl.Location.Name)
+            .ThenBy(pl => pl.Product.Name)
+            .ToListAsync();
+    }
+}

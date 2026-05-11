@@ -2,7 +2,24 @@
 
 <PageTitle>Access denied</PageTitle>
 
-<header>
-    <h1 class="text-danger">Access denied</h1>
-    <p class="text-danger">You do not have access to this resource.</p>
-</header>
+<MudContainer MaxWidth="MaxWidth.Small"
+                ObjectPosition="ObjectPosition.Center">
+
+    <MudText Class="my-5">
+        <h1 Style="text-align: center;" class="text-danger">Access denied</h1>
+    </MudText>
+
+    <MudText Class="my-5">
+        <p Style="text-align: center;" class="text-danger">You do not have access to this resource.</p>
+    </MudText>
+
+    <MudButton Href="/dashboard" 
+                Variant="Variant.Filled" 
+                Color="Color.Primary"
+                FullWidth="true"
+                Size="Size.Large"
+                Class="my-5">
+        Back to Dashboard
+    </MudButton> 
+
+</MudContainer>

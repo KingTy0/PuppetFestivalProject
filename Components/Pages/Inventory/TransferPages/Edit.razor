@@ -1,0 +1,160 @@
+@page "/inventory/transfer/edit/{Id:int}"
+@attribute [Authorize]
+@using Microsoft.EntityFrameworkCore
+@using PuppetFestAPP.Web.Data
+@rendermode InteractiveServer
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject NavigationManager Navigation
+
+<PageTitle>Edit Transfer</PageTitle>
+
+@if (TransferBox == null)
+{
+    <MudAlert Severity="Severity.Info">Loading Transfer Data...</MudAlert>
+}
+else
+{
+    <MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+        <MudText Typo="Typo.h4" Class="mb-4">Edit Transfer #@TransferBox.Id</MudText>
+
+        <EditForm Model="Form" OnValidSubmit="UpdateTransfer">
+            <DataAnnotationsValidator />
+
+            <MudPaper Elevation="1" Class="pa-4">
+                <MudGrid>
+                    <MudItem xs="12" md="5">
+                        <MudSelect T="int" Label="From Location" @bind-Value="Form.FromLocationId" Disabled="@IsReadOnly" Variant="Variant.Outlined">
+                            @foreach (var loc in Locations)
+                            {
+                                <MudSelectItem Value="@loc.Id">@loc.Name (@loc.Type)</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+
+                    <MudItem xs="12" md="5">
+                        <MudSelect T="int" Label="To Location" @bind-Value="Form.ToLocationId" Disabled="@IsReadOnly" Variant="Variant.Outlined">
+                            @foreach (var loc in Locations)
+                            {
+                                <MudSelectItem Value="@loc.Id">@loc.Name (@loc.Type)</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+
+                    <MudItem xs="12" md="2" Class="d-flex align-center">
+                        <MudButton OnClick="ToggleEdit" Color="Color.Secondary" FullWidth="true" Variant="Variant.Outlined">
+                            @(IsReadOnly ? "Edit" : "Cancel")
+                        </MudButton>
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudTextField Label="Notes" @bind-Value="Form.Notes" Lines="3" Disabled="@IsReadOnly" Variant="Variant.Outlined" />
+                    </MudItem>
+                </MudGrid>
+
+                @if (!IsReadOnly)
+                {
+                    <MudAlert Severity="Severity.Warning" Class="mt-4">
+                        <strong>Warning:</strong> Editing locations will automatically adjust current stock levels.
+                    </MudAlert>
+                }
+
+                <MudStack Row="true" Class="mt-6" Spacing="2">
+                    @if (IsReadOnly)
+                    {
+                        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Href="/inventory/stock">Back</MudButton>
+                    }
+                    else
+                    {
+                        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Success">Save Changes</MudButton>
+                        <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="ToggleEdit">Cancel</MudButton>
+                    }
+                </MudStack>
+            </MudPaper>
+        </EditForm>
+    </MudContainer>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+    private StockTransferBox? TransferBox;
+    private List<Location> Locations = new();
+    private bool IsReadOnly = true;
+
+    // Manual property instead of [SupplyParameterFromForm] to avoid the "double binding" crash
+    private TransferEditFormModel Form { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = await DbFactory.CreateDbContextAsync();
+        Locations = await context.Locations.Where(l => l.IsActive).ToListAsync();
+        
+        TransferBox = await context.StockTransferBoxes
+            .Include(b => b.Items)
+            .FirstOrDefaultAsync(b => b.Id == Id);
+
+        if (TransferBox == null)
+        {
+            Navigation.NavigateTo("/inventory/stock");
+            return;
+        }
+
+        Form = new TransferEditFormModel
+        {
+            FromLocationId = TransferBox.FromLocationId,
+            ToLocationId = TransferBox.ToLocationId,
+            Notes = TransferBox.Notes
+        };
+    }
+
+    private void ToggleEdit() => IsReadOnly = !IsReadOnly;
+
+    private async Task UpdateTransfer()
+    {
+        using var context = await DbFactory.CreateDbContextAsync();
+        var box = await context.StockTransferBoxes.Include(b => b.Items).FirstOrDefaultAsync(b => b.Id == Id);
+        
+        if (box == null || box.IsDelivered) return;
+
+        using var transaction = await context.Database.BeginTransactionAsync();
+        try
+        {
+            // Stock Logic: If FromLocation changed, move items back and forth
+            if (box.FromLocationId != Form.FromLocationId)
+            {
+                foreach (var item in box.Items)
+                {
+                    // 1. Put items back in the OLD source
+                    var oldStock = await context.ProductLocations.FirstOrDefaultAsync(pl => pl.LocationId == box.FromLocationId && pl.ProductId == item.ProductId);
+                    if (oldStock != null) oldStock.Quantity += item.Quantity;
+
+                    // 2. Take items out of the NEW source
+                    var newStock = await context.ProductLocations.FirstOrDefaultAsync(pl => pl.LocationId == Form.FromLocationId && pl.ProductId == item.ProductId);
+                    if (newStock == null || newStock.Quantity < item.Quantity)
+                        throw new Exception("New source location does not have enough stock.");
+                    
+                    newStock.Quantity -= item.Quantity;
+                }
+                box.FromLocationId = Form.FromLocationId;
+            }
+
+            box.ToLocationId = Form.ToLocationId;
+            box.Notes = Form.Notes;
+
+            await context.SaveChangesAsync();
+            await transaction.CommitAsync();
+            IsReadOnly = true;
+        }
+        catch (Exception ex)
+        {
+            await transaction.RollbackAsync();
+            // In a real app, you'd show a snackbar or alert here with ex.Message
+        }
+    }
+
+    public class TransferEditFormModel
+    {
+        public int FromLocationId { get; set; }
+        public int ToLocationId { get; set; }
+        public string? Notes { get; set; }
+    }
+}

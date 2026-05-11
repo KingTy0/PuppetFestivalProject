@@ -1,0 +1,76 @@
+@page "/Locations/edit/{Id:int}"
+@attribute [Authorize]
+@using Microsoft.EntityFrameworkCore
+@using PuppetFestAPP.Web.Data
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>Edit Location</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
+    <MudText Typo="Typo.h4" Class="mb-4">Edit Location</MudText>
+
+    @if (Location == null)
+    {
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+    }
+    else
+    {
+        <EditForm Model="Location" OnValidSubmit="UpdateLocation">
+            <MudPaper Elevation="1" Class="pa-4">
+                <MudStack Spacing="3">
+                    
+                    <MudTextField Label="Location Name (Required)" 
+                                  @bind-Value="Location.Name" 
+                                  Required="true" 
+                                  RequiredError="A location name is required." 
+                                  Variant="Variant.Outlined" />
+
+                    <MudTextField Label="Address (Optional)" 
+                                  @bind-Value="Location.Address" 
+                                  Placeholder="Leave blank for Vans" 
+                                  HelperText="If left blank, a placeholder space will be used." 
+                                  Variant="Variant.Outlined" />
+
+                    @* Fixed: Added T="bool" and changed to @bind-Value *@
+                    <MudCheckBox T="bool" @bind-Value="Location.IsActive" Label="Is Active (Visible in Menus)" Color="Color.Primary" />
+
+                    <MudStack Row="true" Class="mt-4" Spacing="2">
+                        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Save Changes</MudButton>
+                        <MudButton Variant="Variant.Filled" Color="Color.Secondary" href="/Locations">Cancel</MudButton>
+                    </MudStack>
+                    
+                </MudStack>
+            </MudPaper>
+        </EditForm>
+    }
+</MudContainer>
+
+@code {
+    [Parameter] public int Id { get; set; }
+    private Location? Location;
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = await DbFactory.CreateDbContextAsync();
+        Location = await context.Locations.FindAsync(Id);
+    }
+
+    private async Task UpdateLocation()
+    {
+        if (Location == null || string.IsNullOrWhiteSpace(Location.Name)) return;
+
+        using var context = await DbFactory.CreateDbContextAsync();
+
+        // THE HACK: If address is empty, give it a space to bypass database [Required] attributes
+        if (string.IsNullOrWhiteSpace(Location.Address))
+        {
+            Location.Address = " ";
+        }
+
+        context.Locations.Update(Location);
+        await context.SaveChangesAsync();
+        Navigation.NavigateTo("/Locations");
+    }
+}

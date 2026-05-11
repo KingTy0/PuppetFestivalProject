@@ -1,0 +1,306 @@
+@page "/products/create"
+@attribute [Authorize]
+@using Microsoft.EntityFrameworkCore
+@using PuppetFestAPP.Web.Data
+@using PuppetFestAPP.Web.Models
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject NavigationManager NavigationManager
+@inject IWebHostEnvironment Environment
+@inject ISnackbar Snackbar
+
+<PageTitle>@(parentId.HasValue ? "Create Variant" : "Create Product")</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="pa-4">
+
+    <MudButton StartIcon="@Icons.Material.Filled.ArrowBack"
+               Variant="Variant.Text"
+               Color="Color.Default"
+               Size="Size.Small"
+               Class="mb-2 text-uppercase"
+               Style="font-size: 0.7rem; letter-spacing: 0.1em; font-weight: 600;"
+               Href="/products">
+        Back
+    </MudButton>
+
+    <MudText Typo="Typo.h4" Style="font-weight: 800; margin-bottom: 24px;">
+        @(parentId.HasValue ? "Create Variant" : "Product Manager")
+    </MudText>
+
+    <EditForm Model="Form" OnValidSubmit="AddProduct" FormName="createProduct">
+        <DataAnnotationsValidator />
+
+        <input type="hidden" @bind="Form.ParentProductId" />
+
+        <MudText Typo="Typo.subtitle1" Style="font-weight: 700; margin-bottom: 12px;">
+            Product Details<sup style="color: var(--mud-palette-primary);">*</sup>
+        </MudText>
+
+        <MudSelect T="int"
+                   @bind-Value="Form.CategoryId"
+                   Placeholder="Select Category"
+                   Variant="Variant.Outlined"
+                   Class="mb-3"
+                   FullWidth="true"
+                   AnchorOrigin="Origin.BottomCenter">
+            <MudSelectItem T="int" Value="0">-- Select Category --</MudSelectItem>
+            @foreach (var cat in Categories)
+            {
+                <MudSelectItem T="int" Value="@cat.Id">@cat.Name</MudSelectItem>
+            }
+        </MudSelect>
+
+        <MudTextField @bind-Value="Form.Name"
+                      Placeholder="Product Name*"
+                      Variant="Variant.Outlined"
+                      Class="mb-3"
+                      FullWidth="true"
+                      For="() => Form.Name" />
+
+        <MudTextField @bind-Value="Form.Description"
+                      Placeholder="Product Description (optional)"
+                      Variant="Variant.Outlined"
+                      Class="mb-4"
+                      FullWidth="true"
+                      Lines="2" />
+
+        <MudText Typo="Typo.subtitle1" Style="font-weight: 700; margin-bottom: 12px;">
+            Price
+        </MudText>
+
+        <MudNumericField @bind-Value="Form.Price"
+                         Placeholder="Input Price"
+                         Variant="Variant.Outlined"
+                         Class="mb-4"
+                         FullWidth="true"
+                         HideSpinButtons="true"
+                         For="() => Form.Price" />
+
+        <MudText Typo="Typo.subtitle1" Style="font-weight: 700; margin-bottom: 12px;">
+            Select Available Sizes:
+        </MudText>
+
+        <MudGrid Spacing="0" Class="mb-4">
+            @foreach (var size in Enum.GetValues<ProductSize>())
+            {
+                <MudItem xs="6">
+                    <MudCheckBox T="bool"
+                                 Value="@(Form.Size == size)"
+                                 ValueChanged="@(v => { if (v) Form.Size = size; })"
+                                 Label="@size.ToString()"
+                                 Color="Color.Primary"
+                                 Size="Size.Small"
+                                 Class="mb-1" />
+                </MudItem>
+            }
+        </MudGrid>
+
+        <MudText Typo="Typo.subtitle1" Style="font-weight: 700; margin-bottom: 12px;">
+            Select Color (Optional):
+        </MudText>
+
+        <MudGrid Spacing="0" Class="mb-4">
+            @foreach (var color in Enum.GetValues<ProductColor>())
+            {
+                <MudItem xs="6">
+                    <MudCheckBox T="bool"
+                                 Value="@(Form.Color == color)"
+                                 ValueChanged="@(v => { if (v) Form.Color = color; })"
+                                 Label="@color.ToString()"
+                                 Color="Color.Primary"
+                                 Size="Size.Small"
+                                 Class="mb-1" />
+                </MudItem>
+            }
+        </MudGrid>
+
+        <MudText Typo="Typo.subtitle1" Style="font-weight: 700; margin-bottom: 12px;">
+            Images
+        </MudText>
+
+        <MudPaper Outlined="true" Class="pa-4 mb-3" Style="border-radius: 8px;">
+            @if (!string.IsNullOrEmpty(uploadedFileName))
+            {
+                <MudImage Src="@($"/images/products/{uploadedFileName}")"
+                          Height="100"
+                          ObjectFit="ObjectFit.Cover"
+                          Style="border-radius: 8px; margin-bottom: 8px;" />
+            }
+            else
+            {
+                <MudText Typo="Typo.body2" Color="Color.Default" Style="margin-bottom: 8px; color: #aaa;">
+                    Upload Image Here
+                </MudText>
+            }
+
+            @if (isUploading)
+            {
+                <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mb-2" />
+                <MudText Typo="Typo.caption" Color="Color.Info">Uploading...</MudText>
+            }
+
+            @if (!string.IsNullOrEmpty(uploadedFileName))
+            {
+                <MudText Typo="Typo.caption" Color="Color.Success" Class="mb-2">
+                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small" /> Image uploaded successfully!
+                </MudText>
+            }
+        </MudPaper>
+
+        <MudStack Row="true" Spacing="2" Class="mb-6">
+            <label for="filePickerInput">
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           Size="Size.Small"
+                           Style="pointer-events: none; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.08em;"
+                           StartIcon="@Icons.Material.Filled.FolderOpen">
+                    Open File Picker
+                </MudButton>
+            </label>
+            <InputFile id="filePickerInput" OnChange="LoadFiles" style="display:none;" />
+
+            <MudButton Variant="Variant.Outlined"
+                       Color="Color.Default"
+                       Size="Size.Small"
+                       Style="text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.08em;"
+                       Disabled="@(string.IsNullOrEmpty(uploadedFileName) || isUploading)">
+                Upload
+            </MudButton>
+
+            <MudButton Variant="Variant.Outlined"
+                       Color="Color.Default"
+                       Size="Size.Small"
+                       Style="text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.08em;"
+                       OnClick="ClearImage"
+                       Disabled="@string.IsNullOrEmpty(uploadedFileName)">
+                Clear
+            </MudButton>
+        </MudStack>
+
+        <ValidationSummary class="text-danger" />
+
+        <MudDivider Class="mb-4" />
+        <MudStack Row="true" Justify="Justify.SpaceBetween">
+            <MudButton Variant="Variant.Outlined"
+                       Color="Color.Default"
+                       Size="Size.Large"
+                       Style="text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.1em; min-width: 120px;"
+                       Href="/products">
+                Cancel
+            </MudButton>
+
+            <MudButton ButtonType="ButtonType.Submit"
+                       Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       Size="Size.Large"
+                       Style="text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.1em; min-width: 120px;"
+                       Disabled="@isUploading"
+                       EndIcon="@Icons.Material.Filled.Check">
+                Confirm
+            </MudButton>
+        </MudStack>
+
+    </EditForm>
+</MudContainer>
+
+@code {
+    [SupplyParameterFromForm]
+    public ProductFormModel Form { get; set; } = new();
+
+    [SupplyParameterFromQuery]
+    public int? parentId { get; set; }
+
+    private List<Category> Categories = new();
+    private bool isUploading = false;
+    private string? uploadedFileName;
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = await DbFactory.CreateDbContextAsync();
+        Categories = await context.Categories.ToListAsync();
+
+        if (parentId.HasValue && string.IsNullOrEmpty(Form.Name))
+        {
+            var parent = await context.Products.FindAsync(parentId.Value);
+            if (parent != null)
+            {
+                Form.ParentProductId = parent.Id;
+                Form.Name = parent.Name;
+                Form.CategoryId = parent.CategoryId;
+                Form.Price = parent.Price;
+            }
+        }
+    }
+
+    private async Task LoadFiles(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file != null)
+        {
+            isUploading = true;
+            StateHasChanged();
+
+            var newName = Guid.NewGuid().ToString() + Path.GetExtension(file.Name);
+            Form.ImageFileName = newName;
+            uploadedFileName = newName;
+
+            var path = Path.Combine(Environment.WebRootPath, "images", "products", newName);
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+
+            await using FileStream fs = new(path, FileMode.Create);
+            await file.OpenReadStream(maxAllowedSize: 1024 * 1024 * 10).CopyToAsync(fs);
+
+            isUploading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ClearImage()
+    {
+        uploadedFileName = null;
+        Form.ImageFileName = null;
+    }
+
+    private async Task AddProduct()
+    {
+        if (Form.CategoryId == 0)
+        {
+            Snackbar.Add("Please select a category.", Severity.Warning);
+            return;
+        }
+
+        using var context = await DbFactory.CreateDbContextAsync();
+        int? finalImageId = null;
+
+        if (!string.IsNullOrEmpty(uploadedFileName))
+        {
+            var newImg = new PuppetFestAPP.Web.Models.Image
+            {
+                FileName = uploadedFileName,
+                AltText = Form.Name
+            };
+            context.Images.Add(newImg);
+            await context.SaveChangesAsync();
+            finalImageId = newImg.Id;
+        }
+
+        var newProduct = new Product
+        {
+            Name = Form.Name,
+            Price = Form.Price,
+            CategoryId = Form.CategoryId,
+            ParentProductId = Form.ParentProductId ?? parentId,
+            Size = Form.Size ?? ProductSize.NA,
+            Color = Form.Color ?? ProductColor.NA,
+            DateAdded = DateTime.Now,
+            IsActive = true,
+            Description = Form.Description ?? "",
+            ImageId = finalImageId
+        };
+
+        context.Products.Add(newProduct);
+        await context.SaveChangesAsync();
+
+        Snackbar.Add("Product saved successfully!", Severity.Success);
+        NavigationManager.NavigateTo("/products");
+    }
+}

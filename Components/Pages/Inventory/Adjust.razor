@@ -1,0 +1,127 @@
+@page "/inventory/adjust/{LocationId:int}"
+@attribute [Authorize]
+@using Microsoft.EntityFrameworkCore
+@using PuppetFestAPP.Web.Data
+@rendermode InteractiveServer
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject NavigationManager Navigation
+
+<PageTitle>End of Day Adjustment: @LocationName</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <MudStack Direction="Row" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
+        <MudText Typo="Typo.h4">End of Day Adjustment: @LocationName</MudText>
+        <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="SaveAdjustments">
+            Save & Reconcile
+        </MudButton>
+    </MudStack>
+
+    <MudAlert Severity="Severity.Info" Dense="true" Class="mb-4">
+        Use this to match digital stock with physical counts. Entering <strong>0</strong> will remove the item from this location.
+    </MudAlert>
+
+    <MudTable Items="AdjustmentList" Dense="true" Hover="true">
+        <HeaderContent>
+            <MudTh>Product</MudTh>
+            <MudTh Align="Align.Center">Current System</MudTh>
+            <MudTh Align="Align.Center">Actual Physical</MudTh>
+            <MudTh Align="Align.Center">Discrepancy</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>
+                <div>
+                    <strong>@context.ProductName</strong><br />
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">@context.VariantDetails</MudText>
+                </div>
+            </MudTd>
+            <MudTd Align="Align.Center">@context.SystemQuantity</MudTd>
+            <MudTd Align="Align.Center">
+                <MudNumericField @bind-Value="context.NewQuantity" Min="0" Variant="Variant.Outlined" Margin="Margin.Dense" Style="width: 100px;" />
+            </MudTd>
+            <MudTd Align="Align.Center">
+                @{
+                    var diff = context.NewQuantity - context.SystemQuantity;
+                    if (diff == 0) { <MudText Typo="Typo.body2" Color="Color.Secondary">-</MudText> }
+                    else if (diff > 0) { <MudText Typo="Typo.body2" Color="Color.Success">+@diff</MudText> }
+                    else { <MudText Typo="Typo.body2" Color="Color.Error">@diff</MudText> }
+                }
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+</MudContainer>
+
+@code {
+    [Parameter] public int LocationId { get; set; }
+    private string LocationName = "";
+    private List<AdjustmentItem> AdjustmentList = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = await DbFactory.CreateDbContextAsync();
+        var location = await context.Locations.FindAsync(LocationId);
+        if (location == null)
+        {
+            Navigation.NavigateTo("/inventory");
+            return;
+        }
+        LocationName = location.Name;
+
+        var products = await context.Products.OrderBy(p => p.Name).ToListAsync();
+        var currentStock = await context.ProductLocations
+            .Where(pl => pl.LocationId == LocationId)
+            .ToListAsync();
+
+        AdjustmentList = products.Select(p => new AdjustmentItem
+        {
+            ProductId = p.Id,
+            ProductName = p.Name,
+            VariantDetails = $"{p.Size} / {p.Color}",
+            SystemQuantity = currentStock.FirstOrDefault(s => s.ProductId == p.Id)?.Quantity ?? 0,
+            NewQuantity = currentStock.FirstOrDefault(s => s.ProductId == p.Id)?.Quantity ?? 0
+        }).ToList();
+    }
+
+    private async Task SaveAdjustments()
+    {
+        using var context = await DbFactory.CreateDbContextAsync();
+        foreach (var item in AdjustmentList)
+        {
+            var stockRecord = await context.ProductLocations
+                .FirstOrDefaultAsync(pl => pl.LocationId == LocationId && pl.ProductId == item.ProductId);
+
+            if (item.NewQuantity == 0 && stockRecord != null)
+            {
+                context.ProductLocations.Remove(stockRecord);
+            }
+            else if (item.NewQuantity != item.SystemQuantity)
+            {
+                if (stockRecord != null)
+                {
+                    stockRecord.Quantity = item.NewQuantity;
+                    stockRecord.LastUpdated = DateTime.UtcNow;
+                }
+                else if (item.NewQuantity > 0)
+                {
+                    context.ProductLocations.Add(new ProductLocation
+                    {
+                        LocationId = LocationId,
+                        ProductId = item.ProductId,
+                        Quantity = item.NewQuantity,
+                        LastUpdated = DateTime.UtcNow
+                    });
+                }
+            }
+        }
+        await context.SaveChangesAsync();
+        Navigation.NavigateTo("/inventory");
+    }
+
+    public class AdjustmentItem
+    {
+        public int ProductId { get; set; }
+        public string ProductName { get; set; } = "";
+        public string VariantDetails { get; set; } = "";
+        public int SystemQuantity { get; set; }
+        public int NewQuantity { get; set; }
+    }
+}

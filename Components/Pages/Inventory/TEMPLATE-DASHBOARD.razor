@@ -1,0 +1,123 @@
+@page "/inventory"
+@attribute [Authorize]
+@using Microsoft.EntityFrameworkCore
+@using PuppetFestAPP.Web.Data
+@rendermode InteractiveServer
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+
+<PageTitle>Inventory Dashboard</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <MudText Typo="Typo.h4" Class="mb-6">Inventory Dashboard</MudText>
+    
+    <MudGrid Spacing="3" Class="mb-8">
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Elevation="2" Class="pa-4 text-center mud-theme-primary">
+                <MudLink href="/inventory/stock" Color="Color.Inherit" Underline="Underline.None">
+                    <MudText Typo="Typo.h6">Stock Levels</MudText>
+                    <MudText Typo="Typo.h3">@TotalStock</MudText>
+                </MudLink>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Elevation="2" Class="pa-4 text-center mud-theme-success">
+                <MudLink href="/inventory/transfers" Color="Color.Inherit" Underline="Underline.None">
+                    <MudText Typo="Typo.h6">Transfers</MudText>
+                    <MudText Typo="Typo.h3">@RecentTransfersCount</MudText>
+                </MudLink>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Elevation="2" Class="pa-4 text-center mud-theme-warning">
+                <MudLink href="/inventory/transfer/create" Color="Color.Inherit" Underline="Underline.None">
+                    <MudText Typo="Typo.h6">New Transfer</MudText>
+                    <MudText Typo="Typo.body1" Class="mt-2">Create Box</MudText>
+                </MudLink>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Elevation="2" Class="pa-4 text-center mud-theme-info">
+                <MudLink href="/locations" Color="Color.Inherit" Underline="Underline.None">
+                    <MudText Typo="Typo.h6">Locations</MudText>
+                    <MudText Typo="Typo.h3">@ActiveLocations</MudText>
+                </MudLink>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <MudGrid>
+        <MudItem xs="12" md="6">
+            <MudText Typo="Typo.h5" Class="mb-4">Recent Transfers</MudText>
+            @if (RecentBoxes.Any())
+            {
+                <MudList T="string">
+                    @foreach (var box in RecentBoxes.Take(5))
+                    {
+                        <MudListItem Icon="@Icons.Material.Filled.LocalShipping" href="@($"/inventory/transfer/details/{box.Id}")">
+                            <div class="d-flex justify-space-between w-100">
+                                <MudText>@box.FromLocation.Name → @box.ToLocation.Name</MudText>
+                                <MudText Typo="Typo.caption">@box.CreatedAt.ToString("MMM dd")</MudText>
+                            </div>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">@box.Items.Count items</MudText>
+                        </MudListItem>
+                    }
+                </MudList>
+            }
+            else
+            {
+                <MudAlert Severity="Severity.Info">No recent transfers.</MudAlert>
+            }
+        </MudItem>
+
+        <MudItem xs="12" md="6">
+            <MudText Typo="Typo.h5" Class="mb-4">Low Stock Alerts</MudText>
+            @if (LowStock.Any())
+            {
+                <MudList T="string">
+                    @foreach (var item in LowStock.Take(5))
+                    {
+                        <MudListItem Icon="@Icons.Material.Filled.Warning" IconColor="Color.Warning">
+                            <div class="d-flex justify-space-between w-100">
+                                <MudText>@item.Product.Name</MudText>
+                                <MudChip T="string" Size="Size.Small" Color="Color.Warning">@item.Quantity left</MudChip>
+                            </div>
+                        </MudListItem>
+                    }
+                </MudList>
+            }
+            else
+            {
+                <MudAlert Severity="Severity.Success">All products have sufficient stock.</MudAlert>
+            }
+        </MudItem>
+    </MudGrid>
+</MudContainer>
+
+@code {
+    private int TotalStock;
+    private int ActiveLocations;
+    private int RecentTransfersCount;
+    private List<StockTransferBox> RecentBoxes = new();
+    private List<ProductLocation> LowStock = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = await DbFactory.CreateDbContextAsync();
+        
+        TotalStock = await context.ProductLocations.SumAsync(pl => (int?)pl.Quantity) ?? 0;
+        ActiveLocations = await context.Locations.CountAsync(l => l.IsActive);
+        RecentTransfersCount = await context.StockTransferBoxes.CountAsync();
+        
+        RecentBoxes = await context.StockTransferBoxes
+            .Include(b => b.FromLocation)
+            .Include(b => b.ToLocation)
+            .Include(b => b.Items)
+            .OrderByDescending(b => b.CreatedAt)
+            .ToListAsync();
+
+        LowStock = await context.ProductLocations
+            .Include(pl => pl.Product)
+            .Where(pl => pl.Quantity < 5)
+            .ToListAsync();
+    }
+}

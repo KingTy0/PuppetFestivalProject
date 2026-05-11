@@ -3,29 +3,30 @@
 
 @inject SignInManager<ApplicationUser> SignInManager
 
-<ul class="nav nav-pills flex-column">
-    <li class="nav-item">
-        <NavLink class="nav-link" href="Account/Manage" Match="NavLinkMatch.All">Profile</NavLink>
-    </li>
-    <li class="nav-item">
-        <NavLink class="nav-link" href="Account/Manage/Email">Email</NavLink>
-    </li>
-    <li class="nav-item">
-        <NavLink class="nav-link" href="Account/Manage/ChangePassword">Password</NavLink>
-    </li>
-    @if (hasExternalLogins)
+<MudNavMenu>
+    <MudNavLink Href="Account/Manage/Email" 
+                EndIcon="@Icons.Material.Filled.ArrowForward"
+                FullWidth="true">
+        Email
+    </MudNavLink>
+    <MudNavLink Href="Account/Manage/PhoneNumber" 
+                EndIcon="@Icons.Material.Filled.ArrowForward"
+                FullWidth="true">
+        Phone Number
+    </MudNavLink>
+    <MudNavLink Href="Account/Manage/ChangePassword" 
+                EndIcon="@Icons.Material.Filled.ArrowForward"
+                FullWidth="true">
+        Password
+    </MudNavLink>
+
+    @* @if (hasExternalLogins)
     {
-        <li class="nav-item">
-            <NavLink class="nav-link" href="Account/Manage/ExternalLogins">External logins</NavLink>
-        </li>
+        <MudNavLink Href="Account/Manage/ExternalLogins">External logins</MudNavLink>
     }
-    <li class="nav-item">
-        <NavLink class="nav-link" href="Account/Manage/TwoFactorAuthentication">Two-factor authentication</NavLink>
-    </li>
-    <li class="nav-item">
-        <NavLink class="nav-link" href="Account/Manage/PersonalData">Personal data</NavLink>
-    </li>
-</ul>
+    <MudNavLink Href="Account/Manage/TwoFactorAuthentication">Two-factor authentication</MudNavLink>
+    <MudNavLink Href="Account/Manage/PersonalData">Personal data</MudNavLink> *@
+</MudNavMenu>
 
 @code {
     private bool hasExternalLogins;

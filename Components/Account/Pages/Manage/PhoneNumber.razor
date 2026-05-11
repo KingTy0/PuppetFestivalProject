@@ -1,0 +1,142 @@
+@page "/Account/Manage/PhoneNumber"
+
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Identity
+@using PuppetFestAPP.Web.Data
+
+@inject UserManager<ApplicationUser> UserManager
+@inject SignInManager<ApplicationUser> SignInManager
+@inject IdentityUserAccessor UserAccessor
+@inject IdentityRedirectManager RedirectManager
+
+<PageTitle>Phone Number</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Small"
+                ObjectPosition="ObjectPosition.Center">
+
+    <MudButton Href="Account/Manage" 
+                Variant="Variant.Text"
+                Color="Color.Primary" 
+                Size="Size.Medium"
+                StartIcon="@Icons.Material.Filled.ArrowBack"
+                Style="text-decoration: none;"
+                Class="my-2">
+        Back
+    </MudButton>
+
+    <MudText Class="my-5">
+        <h3>Phone Number</h3>
+    </MudText>
+
+    @if (!string.IsNullOrEmpty(@errorMessage))
+    {
+        <MudAlert Severity="Severity.Error" 
+                Variant="Variant.Text"
+                Class="my-5">
+            <StatusMessage Message="@errorMessage" />
+        </MudAlert>
+    } 
+    
+    @if (!string.IsNullOrEmpty(@successMessage))
+    {
+        <MudAlert Severity="Severity.Success" 
+                Variant="Variant.Text"
+                Class="my-5">
+            <StatusMessage Message="@successMessage" />
+        </MudAlert>
+    }
+
+    <EditForm Model="Input" FormName="profile" OnValidSubmit="OnValidSubmitAsync" method="post">
+        <DataAnnotationsValidator />
+        @* <ValidationSummary class="text-danger" role="alert" /> *@
+        
+        @* Removing Username field since it cannot be changed. If we want to allow changing username in the future, we can add this back and implement the necessary logic in the OnValidSubmitAsync method.
+        <div class="form-floating mb-3">
+            <input type="text" value="@username" id="username" class="form-control" placeholder="Choose your username." disabled />
+            <label for="username" class="form-label">Username</label>
+        </div>
+        *@
+
+        @*         
+        <div class="form-floating mb-3">
+            <InputText @bind-Value="Input.PhoneNumber" id="Input.PhoneNumber" class="form-control" placeholder="Enter your phone number" />
+            <label for="Input.PhoneNumber" class="form-label">Phone number</label>
+            <ValidationMessage For="() => Input.PhoneNumber" class="text-danger" />
+        </div> 
+        *@
+
+        <MudTextField @bind-Value="Input.PhoneNumber" 
+                    For="@(() => Input.PhoneNumber)"
+                    Name="Input.PhoneNumber" 
+                    id="Input.PhoneNumber"
+                    ShrinkLabel 
+		            Label="Phone Number"
+                    Placeholder="Enter your phone number"
+                    Variant="Variant.Outlined" 
+                    InputType="InputType.Text"
+                    Required="true" 
+                    aria-required="true"
+                    FullWidth="true" 
+                    Class="my-5"/>
+        @* <ValidationMessage For="() => Input.PhoneNumber" class="text-danger" /> *@
+
+        <MudButton ButtonType="ButtonType.Submit" 
+                    Variant="Variant.Filled" 
+                    Color="Color.Primary" 
+                    FullWidth="true" 
+                    Size="Size.Large" 
+                    Class="my-2">
+            Save
+        </MudButton>
+        
+    </EditForm>
+</MudContainer>
+
+@code {
+    private string? errorMessage;
+    private string? successMessage;
+    private ApplicationUser user = default!;
+    private string? username;
+    private string? phoneNumber;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm]
+    private InputModel Input { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        user = await UserAccessor.GetRequiredUserAsync(HttpContext);
+        username = await UserManager.GetUserNameAsync(user);
+        phoneNumber = await UserManager.GetPhoneNumberAsync(user);
+
+        Input.PhoneNumber ??= phoneNumber;
+    }
+
+    private async Task OnValidSubmitAsync()
+    {
+        if (Input.PhoneNumber != phoneNumber)
+        {
+            var setPhoneResult = await UserManager.SetPhoneNumberAsync(user, Input.PhoneNumber);
+            if (!setPhoneResult.Succeeded)
+            {
+                errorMessage = "Failed to set phone number.";
+                return; 
+                //RedirectManager.RedirectToCurrentPageWithStatus("Error: Failed to set phone number.", HttpContext);
+            }
+        }
+
+        await SignInManager.RefreshSignInAsync(user);
+        successMessage = "Your profile has been updated to" + (Input.PhoneNumber != phoneNumber ? $" {Input.PhoneNumber}" : " the same phone number") + ".";
+        return;
+        //RedirectManager.RedirectToCurrentPageWithStatus("Your profile has been updated", HttpContext);
+    }
+
+    private sealed class InputModel
+    {
+        [Phone]
+        [Display(Name = "Phone number")]
+        public string? PhoneNumber { get; set; }
+    }
+}

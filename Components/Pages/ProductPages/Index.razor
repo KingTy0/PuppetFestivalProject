@@ -1,0 +1,113 @@
+@page "/products"
+@attribute [Authorize]
+@using Microsoft.EntityFrameworkCore
+@using PuppetFestAPP.Web.Data
+@using PuppetFestAPP.Web.Models
+@rendermode InteractiveServer
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="mt-10">
+    @* --- HEADER SECTION --- *@
+    <MudText Typo="Typo.h3" Style="font-family: var(--title-font); font-weight: bold;">Product Catalog</MudText>
+    <MudText Typo="Typo.body1" Class="mt-2 mb-6" Color="Color.Secondary">
+        The collection of merchandise currently being sold.
+    </MudText>
+
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" 
+               Size="Size.Large" Class="py-3 mb-8" StartIcon="@Icons.Material.Filled.Add"
+               Href="products/create">
+        CREATE A PRODUCT
+    </MudButton>
+
+    @* --- SEARCH & FILTER SECTION --- *@
+    <div class="d-flex gap-2 mb-4">
+        <MudTextField @bind-Value="searchTerm" Placeholder="Search for an item" 
+                      Variant="Variant.Filled" Adornment="Adornment.End" 
+                      AdornmentIcon="@Icons.Material.Filled.Search" Margin="Margin.Dense" 
+                      Immediate="true" />
+        
+        <MudSelect T="string" Label="Filter" Variant="Variant.Outlined" Margin="Margin.Dense" 
+                   Style="width: 120px;" AnchorOrigin="Origin.BottomCenter">
+            <MudSelectItem Value="@("All")" />
+            <MudSelectItem Value="@("Apparel")" />
+            <MudSelectItem Value="@("Misc")" />
+        </MudSelect>
+    </div>
+
+    @* --- PRODUCT LIST SECTION (Matches image_a22dc3.png) --- *@
+    <MudPaper Elevation="0" Outlined="true" Class="overflow-hidden">
+        @* List Header *@
+        <div class="d-flex pa-3 grey lighten-4 border-bottom">
+            <MudText Typo="Typo.caption" Class="flex-grow-1"><b>Product Name</b></MudText>
+            <MudText Typo="Typo.caption" Style="width: 80px;" Align="Align.Right"><b>Category</b></MudText>
+        </div>
+
+        @foreach (var prod in FilteredProducts)
+        {
+            <div class="product-row d-flex align-center pa-3 border-bottom clickable" @onclick="@(() => NavigateToDetails(prod.Id))">
+                @* Product Thumbnail *@
+                <MudAvatar Variant="Variant.Outlined" Square="true" Size="Size.Large" Class="mr-3 bg-white">
+                    @if (prod.Image != null)
+                    {
+                        <MudImage Src="@($"/images/products/{prod.Image.FileName}")" />
+                    }
+                    else
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.ImageNotSupported" Color="Color.Transparent" />
+                    }
+                </MudAvatar>
+
+                @* Name & Price *@
+                <div class="flex-grow-1">
+                    <MudText Typo="Typo.body2" Style="font-weight: 500; line-height: 1.2;">@prod.Name</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">@prod.Price.ToString("C")</MudText>
+                </div>
+
+                @* Category Label *@
+                <div style="width: 80px;" class="text-right">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">@prod.Category?.Name</MudText>
+                </div>
+            </div>
+        }
+    </MudPaper>
+</MudContainer>
+
+<style>
+    /* Zebra Striping similar to mockup image_a22dc3.png */
+    .product-row:nth-child(even) {
+        background-color: #f9f9f9;
+    }
+    .product-row:hover {
+        background-color: #f0f0f0;
+        cursor: pointer;
+    }
+    .border-bottom {
+        border-bottom: 1px solid #e0e0e0;
+    }
+</style>
+
+@code {
+    private List<Product> Products = new();
+    private string searchTerm = "";
+
+    private IEnumerable<Product> FilteredProducts => 
+        string.IsNullOrWhiteSpace(searchTerm) 
+            ? Products 
+            : Products.Where(p => p.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
+
+    @inject NavigationManager Nav
+    private void NavigateToDetails(int id) => Nav.NavigateTo($"/products/details/{id}");
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var db = await DbFactory.CreateDbContextAsync();
+
+        // Loading Master Products only (ParentProductId == null)
+        Products = await db.Products
+            .Include(p => p.Category)
+            .Include(p => p.Image)
+            .Where(p => p.ParentProductId == null)
+            .OrderBy(p => p.Name)
+            .ToListAsync();
+    }
+}

@@ -14,24 +14,60 @@
 
 <PageTitle>Resend email confirmation</PageTitle>
 
-<h1>Resend email confirmation</h1>
-<h2>Enter your email.</h2>
-<hr />
-<StatusMessage Message="@message" />
-<div class="row">
-    <div class="col-md-4">
-        <EditForm Model="Input" FormName="resend-email-confirmation" OnValidSubmit="OnValidSubmitAsync" method="post">
-            <DataAnnotationsValidator />
-            <ValidationSummary class="text-danger" role="alert" />
-            <div class="form-floating mb-3">
-                <InputText @bind-Value="Input.Email" id="Input.Email" class="form-control" aria-required="true" placeholder="name@example.com" />
-                <label for="Input.Email" class="form-label">Email</label>
-                <ValidationMessage For="() => Input.Email" class="text-danger" />
-            </div>
-            <button type="submit" class="w-100 btn btn-lg btn-primary">Resend</button>
-        </EditForm>
-    </div>
-</div>
+
+        
+
+
+<MudContainer MaxWidth="MaxWidth.Small"
+                ObjectPosition="ObjectPosition.Center">
+
+    <MudText Class="my-5">
+        <h1 Style="text-align: center;">Resend email confirmation</h1>
+    </MudText>
+
+    <MudText Class="my-5">
+        <p Style="text-align: center;">Enter your email address associated with your account to receive an email confirmation.</p>
+    </MudText>
+
+    <StatusMessage Message="@message" />
+
+    <EditForm Model="Input" FormName="resend-email-confirmation" OnValidSubmit="OnValidSubmitAsync" method="post">
+        <DataAnnotationsValidator />
+        <ValidationSummary class="text-danger" role="alert" />
+            
+        <MudTextField @bind-Value="Input.Email" 
+                    For="@(() => Input.Email)"
+                    Name="Input.Email" 
+                    id="Input.Email"
+                    ShrinkLabel 
+                    Placeholder="Enter your email"
+                    Label="Email"
+                    Variant="Variant.Outlined" 
+                    InputType="InputType.Email"
+                    Required="true" 
+                    aria-required="true"
+                    FullWidth="true" 
+                    Class="my-5"/>
+
+        <ValidationMessage For="() => Input.Email" class="text-danger" />
+
+        <MudButton ButtonType="ButtonType.Submit" 
+                    Variant="Variant.Filled" 
+                    Color="Color.Primary" 
+                    FullWidth="true" 
+                    Size="Size.Large" 
+                    Class="my-2">
+            Resend
+        </MudButton>
+
+    </EditForm>
+
+    
+
+   
+
+</MudContainer>
+
 
 @code {
     private string? message;

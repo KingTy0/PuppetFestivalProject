@@ -1,0 +1,157 @@
+@page "/products/edit/{id:int}"
+@attribute [Authorize]
+@using Microsoft.EntityFrameworkCore
+@using PuppetFestAPP.Web.Data
+@using PuppetFestAPP.Web.Models
+@rendermode InteractiveServer
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject NavigationManager NavigationManager
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="mt-6 mb-10">
+    @* --- TOP NAVIGATION --- *@
+    <MudLink OnClick="HandleCancel" Color="Color.Primary" Underline="Underline.None" Class="d-flex align-center mb-4">
+        <MudIcon Icon="@Icons.Material.Filled.ArrowBack" Size="Size.Small" Class="mr-1"/> BACK
+    </MudLink>
+
+    <MudText Typo="Typo.h3" Style="font-family: var(--title-font); font-weight: bold;">Product Manager</MudText>
+
+    @if (Form is null)
+    {
+        <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-7" />
+    }
+    else
+    {
+        <EditForm Model="Form" OnValidSubmit="UpdateProduct">
+            <DataAnnotationsValidator />
+
+            @* --- SECTION: PRODUCT DETAILS --- *@
+            <MudText Typo="Typo.h6" Class="mt-8 mb-2">Product Details*</MudText>
+            
+            <MudSelect T="int" @bind-Value="Form.CategoryId" Label="Category" 
+                       Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" Class="mb-4">
+                @foreach (var cat in Categories)
+                {
+                    <MudSelectItem Value="@cat.Id">@cat.Name</MudSelectItem>
+                }
+            </MudSelect>
+
+            <MudTextField @bind-Value="Form.Name" Label="Product Name*" 
+                          Variant="Variant.Outlined" Class="mb-4" />
+
+            <MudTextField @bind-Value="Form.Description" Label="Product Description (optional)" 
+                          Variant="Variant.Outlined" Lines="3" Class="mb-8" />
+
+            @* --- SECTION: PRICE --- *@
+            <MudText Typo="Typo.h6" Class="mb-2">Price</MudText>
+            <MudNumericField @bind-Value="Form.Price" Label="Input Price" 
+                             Variant="Variant.Outlined" HideSpinButtons="true" 
+                             Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.AttachMoney"
+                             Class="mb-8" />
+
+            @* --- SECTION: SIZE SELECTION (Matches image_89445a.png) --- *@
+            <MudText Typo="Typo.h6" Class="mb-2">Select Available Sizes:</MudText>
+            <MudGrid Spacing="1" Class="mb-8">
+                @foreach (var size in Enum.GetValues<ProductSize>().Where(s => s != ProductSize.NA))
+                {
+                    <MudItem xs="6">
+                        <MudCheckBox T="bool" Label="@GetFriendlySizeName(size)" Color="Color.Primary" />
+                    </MudItem>
+                }
+            </MudGrid>
+
+            @* --- ACTIONS --- *@
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" 
+                       Color="Color.Primary" FullWidth="true" Size="Size.Large" Class="py-3">
+                SAVE CHANGES
+            </MudButton>
+            
+            <MudButton OnClick="HandleCancel" Variant="Variant.Text" 
+                       Color="Color.Secondary" FullWidth="true" Class="mt-2">
+                Cancel
+            </MudButton>
+        </EditForm>
+    }
+</MudContainer>
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    [SupplyParameterFromForm]
+    private ProductFormModel? Form { get; set; }
+
+    private List<Category> Categories = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = await DbFactory.CreateDbContextAsync();
+        Categories = await context.Categories.ToListAsync();
+
+        if (Form is null)
+        {
+            var product = await context.Products.FindAsync(Id);
+            if (product is null)
+            {
+                NavigationManager.NavigateTo("/products");
+                return;
+            }
+
+            Form = new ProductFormModel
+            {
+                Name = product.Name,
+                Price = product.Price,
+                CategoryId = product.CategoryId,
+                Description = product.Description,
+                ParentProductId = product.ParentProductId,
+                Size = product.Size,
+                Color = product.Color
+            };
+        }
+    }
+
+    private async Task UpdateProduct()
+    {
+        using var context = await DbFactory.CreateDbContextAsync();
+        var product = await context.Products.FindAsync(Id);
+
+        if (product != null && Form != null)
+        {
+            product.Name = Form.Name;
+            product.Price = Form.Price;
+            product.CategoryId = Form.CategoryId;
+            product.Description = Form.Description ?? "";
+            product.Size = Form.Size;
+            product.Color = Form.Color;
+
+            try
+            {
+                await context.SaveChangesAsync();
+                HandleNavigation(product.ParentProductId);
+            }
+            catch (Exception ex) when (ex is not Microsoft.AspNetCore.Components.NavigationException)
+            {
+                Console.WriteLine($"Error: {ex.Message}");
+            }
+        }
+    }
+
+    private void HandleCancel() => HandleNavigation(Form?.ParentProductId);
+
+    private void HandleNavigation(int? parentId)
+    {
+        if (parentId.HasValue)
+            NavigationManager.NavigateTo($"/products/details/{parentId}");
+        else
+            NavigationManager.NavigateTo("/products");
+    }
+
+    private string GetFriendlySizeName(ProductSize size) => size switch
+    {
+        ProductSize.S => "Small",
+        ProductSize.M => "Medium",
+        ProductSize.L => "Large",
+        ProductSize.XL => "X-Large",
+        ProductSize.XXL => "XX-Large",
+        ProductSize.XXXL => "XXX-Large",
+        _ => size.ToString()
+    };
+}

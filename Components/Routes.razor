@@ -1,5 +1,6 @@
 ﻿@using PuppetFestAPP.Web.Components.Account.Shared
-<Router AppAssembly="typeof(Program).Assembly">
+
+<Router AppAssembly="@typeof(Program).Assembly">
     <Found Context="routeData">
         <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)">
             <NotAuthorized>
@@ -8,4 +9,22 @@
         </AuthorizeRouteView>
         <FocusOnNavigate RouteData="routeData" Selector="h1" />
     </Found>
+    <NotFound>
+        <PageTitle>Page Not Found</PageTitle>
+        <LayoutView Layout="@typeof(Layout.MainLayout)">
+            <MudContainer MaxWidth="MaxWidth.Medium" Class="mx-auto" Style="margin-top:3rem;">
+                <MudPaper Elevation="2" Class="pa-6 text-center">
+                    <MudIcon Icon="@Icons.Material.Filled.WarningAmber" Color="Color.Error" Size="Size.Large" />
+                    <MudText Typo="Typo.h4" Class="mt-4">Oops! Page Not Found</MudText>
+                    <MudText Typo="Typo.subtitle1" Color="Color.Secondary" Class="mt-2 mb-4">
+                        We couldn't find the page you're looking for. It might have been moved or doesn't exist yet.
+                    </MudText>
+                    <MudStack Direction="Row" Justify="Justify.Center" Spacing="2">
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/">Go Home</MudButton>
+                        <MudButton Variant="Variant.Outlined" Color="Color.Secondary" Href="/inventory">Back to Inventory</MudButton>
+                    </MudStack>
+                </MudPaper>
+            </MudContainer>
+        </LayoutView>
+    </NotFound>
 </Router>

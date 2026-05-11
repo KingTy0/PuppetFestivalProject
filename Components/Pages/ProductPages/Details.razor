@@ -1,0 +1,128 @@
+@page "/products/details/{Id:int}"
+@attribute [Authorize]
+@using Microsoft.EntityFrameworkCore
+@using PuppetFestAPP.Web.Data
+@using PuppetFestAPP.Web.Models
+@rendermode InteractiveServer
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject NavigationManager NavigationManager
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="mt-6 mb-10">
+    @* --- HEADER NAVIGATION --- *@
+    <div class="d-flex align-center justify-space-between mb-2">
+        <MudLink href="/products" Color="Color.Primary" Underline="Underline.None" Class="d-flex align-center">
+            <MudIcon Icon="@Icons.Material.Filled.ArrowBack" Size="Size.Small" Class="mr-1"/> BACK
+        </MudLink>
+        
+        @if (Product != null)
+        {
+            <div class="d-flex gap-2">
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" 
+                               Href="@($"/products/edit/{Product.Id}")" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" 
+                               Href="@($"/products/delete/{Product.Id}")" />
+            </div>
+        }
+    </div>
+
+    @if (Product is null)
+    {
+        <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-7" />
+    }
+    else
+    {
+        @* --- PRODUCT TITLE --- *@
+        <MudText Typo="Typo.h4" Style="font-family: var(--title-font); font-weight: bold; line-height: 1.1;" Class="mb-6">
+            @Product.Name
+        </MudText>
+
+        @* --- PRODUCT IMAGE --- *@
+        <div class="d-flex justify-center mb-8">
+            <MudPaper Elevation="0" Outlined="true" Class="pa-4 d-flex justify-center align-center" Style="width: 100%; max-width: 300px; height: 300px;">
+                @if (!string.IsNullOrEmpty(Product.Image?.FileName))
+                {
+                    <MudImage Src="@($"/images/products/{Product.Image.FileName}")" 
+                              ObjectFit="ObjectFit.Contain" Height="250" Width="250" />
+                }
+                else
+                {
+                    <MudIcon Icon="@Icons.Material.Filled.ImageNotSupported" Size="Size.Large" Color="Color.Transparent" />
+                }
+            </MudPaper>
+        </div>
+
+        @* --- BASE INFO --- *@
+        <MudText Typo="Typo.h5" Class="mb-1">@Product.Category?.Name</MudText>
+        <MudText Typo="Typo.h6" Class="mb-8"><b>@Product.Price.ToString("C")</b></MudText>
+
+        @* --- VARIATIONS SECTION --- *@
+        <div class="d-flex align-center justify-space-between mb-4">
+            <MudText Typo="Typo.h5" Style="font-weight: bold;">Sizes</MudText>
+            <MudButton StartIcon="@Icons.Material.Filled.Add" Size="Size.Small" 
+                       Variant="Variant.Text" Color="Color.Primary"
+                       Href="@($"/products/create?parentId={Product.Id}")">
+                Add Variant
+            </MudButton>
+        </div>
+
+        @if (Variants != null && Variants.Any())
+        {
+            <div class="d-flex flex-wrap gap-2 mb-10">
+                @foreach (var v in Variants)
+                {
+                    <MudChip T="string" Variant="Variant.Filled" Color="Color.Default" 
+                             Class="px-6 py-4" OnClick="@(() => NavigationManager.NavigateTo($"/products/edit/{v.Id}"))">
+                        @(v.Size == ProductSize.NA || v.Size == null ? "Standard" : GetFriendlySize(v.Size.Value))
+                    </MudChip>
+                }
+            </div>
+        }
+        else
+        {
+            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-10">
+                Standalone product. No variations added yet.
+            </MudAlert>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(Product.Description))
+        {
+            <MudText Typo="Typo.subtitle2" Color="Color.Secondary" Class="mb-1">Description</MudText>
+            <MudText Typo="Typo.body1" Class="mb-6">@Product.Description</MudText>
+        }
+    }
+</MudContainer>
+
+@code {
+    [Parameter] public int Id { get; set; }
+    private Product? Product { get; set; }
+    private List<Product> Variants { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = await DbFactory.CreateDbContextAsync();
+
+        Product = await context.Products
+            .Include(p => p.Category)
+            .Include(p => p.Image)
+            .FirstOrDefaultAsync(m => m.Id == Id);
+
+        if (Product is not null)
+        {
+            Variants = await context.Products
+                .Where(p => p.ParentProductId == Id)
+                .OrderBy(p => p.Size)
+                .ToListAsync();
+        }
+    }
+
+    private string GetFriendlySize(ProductSize size) => size switch
+    {
+        ProductSize.S => "Small",
+        ProductSize.M => "Medium",
+        ProductSize.L => "Large",
+        ProductSize.XL => "X-Large",
+        ProductSize.XXL => "XX-Large",
+        ProductSize.XXXL => "XXX-Large",
+        _ => size.ToString()
+    };
+}

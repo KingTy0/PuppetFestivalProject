@@ -1,0 +1,150 @@
+@page "/admin/storage"
+@using Microsoft.AspNetCore.Authorization
+@using PuppetFestAPP.Web.Services
+@attribute [Authorize(Roles = "Admin")]
+@rendermode InteractiveServer
+@inject SqliteBackupService BackupService
+@inject BackupQueueService BackupQueue
+@inject IConfiguration Configuration
+
+<PageTitle>Storage Admin</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <MudText Typo="Typo.h4">Storage Administration</MudText>
+
+    @* ── Backup status card ── *@
+    <MudPaper Elevation="1" Class="pa-4 mt-4">
+        <MudText Typo="Typo.h6">Backup Status</MudText>
+        @if (BackupService.IsEnabled)
+        {
+            <MudText Typo="Typo.body1" Color="Color.Success" Class="mt-2">
+                <strong>✓ Blob Storage backup is ENABLED</strong>
+            </MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-2">
+                Automatic backups run every @(Configuration.GetValue<int>("Backup:IntervalMinutes", 5)) minutes. 
+                Write-triggered backups also fire after each database change.
+            </MudText>
+        }
+        else
+        {
+            <MudAlert Severity="Severity.Warning" Class="mt-3">
+                <strong>Blob Storage backup is DISABLED.</strong><br />
+                Set <code>Backup:UseStorage</code> to <code>true</code> and provide a <code>Backup:BlobConnectionString</code> in configuration to enable.
+            </MudAlert>
+        }
+    </MudPaper>
+
+    @* ── Manual backup card ── *@
+    <MudPaper Elevation="1" Class="pa-4 mt-4">
+        <MudText Typo="Typo.h6">Manual Backup</MudText>
+        <MudButton Variant="Variant.Filled" 
+                   Color="Color.Primary" 
+                   OnClick="@RunBackup" 
+                   Disabled="@(!BackupService.IsEnabled || isRunning)" 
+                   Class="mt-3">
+            @if (isRunning)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
+                <text>Backing up...</text>
+            }
+            else
+            {
+                <text>Backup Now</text>
+            }
+        </MudButton>
+
+        @if (!string.IsNullOrEmpty(resultMessage))
+        {
+            <MudAlert Severity="@ResultSeverity" Dense="true" Class="mt-3">@resultMessage</MudAlert>
+        }
+    </MudPaper>
+
+    @* ── Restore card ── *@
+    <MudPaper Elevation="1" Class="pa-4 mt-4">
+        <MudText Typo="Typo.h6">Restore from Latest Backup</MudText>
+        <MudAlert Severity="Severity.Error" Class="mt-3">
+            <strong>Caution:</strong> This will overwrite the current database with the most recent backup. 
+            All active user sessions will be disrupted. An application restart is recommended after restoring.
+        </MudAlert>
+        <MudButton Variant="Variant.Filled" 
+                   Color="Color.Warning" 
+                   OnClick="@RunRestore" 
+                   Disabled="@(!BackupService.IsEnabled || isRestoring)" 
+                   Class="mt-2">
+            @if (isRestoring)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
+                <text>Restoring...</text>
+            }
+            else
+            {
+                <text>Restore Latest Backup</text>
+            }
+        </MudButton>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private bool isRunning;
+    private bool isRestoring;
+    private string resultMessage = "";
+    private string resultCssClass = "";
+
+    private Severity ResultSeverity => resultCssClass switch
+    {
+        "alert-success" => Severity.Success,
+        "alert-warning" => Severity.Warning,
+        "alert-danger" => Severity.Error,
+        _ => Severity.Info
+    };
+
+    private async Task RunBackup()
+    {
+        isRunning = true;
+        resultMessage = "";
+        try
+        {
+            var blobName = await BackupQueue.RunBackupAndWaitAsync();
+            if (blobName != null)
+            {
+                resultMessage = $"Backup successful! Saved as: {blobName}";
+                resultCssClass = "alert-success";
+            }
+            else
+            {
+                resultMessage = "Backup skipped — another backup is already running.";
+                resultCssClass = "alert-info";
+            }
+        }
+        catch (Exception ex)
+        {
+            resultMessage = $"Backup failed: {ex.Message}";
+            resultCssClass = "alert-danger";
+        }
+        finally
+        {
+            isRunning = false;
+        }
+    }
+
+    private async Task RunRestore()
+    {
+        isRestoring = true;
+        resultMessage = "";
+        try
+        {
+            var blobName = await BackupService.RestoreLatestAsync();
+            resultMessage = $"Restore successful from: {blobName}. Please restart the application.";
+            resultCssClass = "alert-success";
+        }
+        catch (Exception ex)
+        {
+            resultMessage = $"Restore failed: {ex.Message}";
+            resultCssClass = "alert-danger";
+        }
+        finally
+        {
+            isRestoring = false;
+        }
+    }
+}

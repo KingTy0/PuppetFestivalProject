@@ -1,0 +1,262 @@
+@page "/sales/create"
+@attribute [Authorize]
+@using Microsoft.EntityFrameworkCore
+@using PuppetFestAPP.Web.Data
+@using PuppetFestAPP.Web.Models
+@rendermode InteractiveServer
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="mt-10">
+    @if (SelectedLocationId == 0)
+    {
+        @* --- STEP 1: LOCATION SELECTION (Matches image_a29a20.png) --- *@
+        <div class="text-center">
+            <MudText Typo="Typo.h3" Style="font-family: var(--title-font); font-weight: bold;">Record Sales</MudText>
+            <MudText Typo="Typo.body1" Class="mt-4 mb-10" Color="Color.Secondary">
+                Select your location and record sales to automatically keep inventory counts accurate and up to date.
+            </MudText>
+
+            <MudText Align="Align.Left" Typo="Typo.subtitle1" Class="mb-2"><b>Select a location to continue:</b></MudText>
+            <MudSelect T="int" Value="SelectedLocationId" ValueChanged="OnLocationChanged" 
+                       Variant="Variant.Outlined" Placeholder="Select a location" AnchorOrigin="Origin.BottomCenter">
+                @foreach (var loc in Locations)
+                {
+                    <MudSelectItem T="int" Value="@loc.Id">@loc.Name</MudSelectItem>
+                }
+            </MudSelect>
+
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" 
+                       Size="Size.Large" Class="mt-8 py-3" OnClick="() => { /* Triggered by ValueChanged */ }"
+                       Disabled="@(SelectedLocationId == 0)" EndIcon="@Icons.Material.Filled.ArrowForward">
+                CONTINUE
+            </MudButton>
+        </div>
+    }
+    else if (!ShowSummary)
+    {
+        @* --- STEP 2: RECORD SINGLE SALES (Matches image_a29758.png) --- *@
+        <MudLink OnClick="ResetLocation" Color="Color.Primary" Underline="Underline.None" Class="d-flex align-center mb-4">
+            <MudIcon Icon="@Icons.Material.Filled.ArrowBack" Size="Size.Small" Class="mr-1"/> BACK
+        </MudLink>
+
+        <MudText Typo="Typo.h4" Style="font-family: var(--title-font); font-weight: bold;">Record Single Sales</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+            Record each sale as it happens to keep inventory count up to date in real time.
+        </MudText>
+
+        <MudChip T="string" Icon="@Icons.Material.Filled.TheaterComedy" Color="Color.Dark" Class="mb-6 px-4">
+            @CurrentLocationName
+        </MudChip>
+
+        <div class="d-flex gap-2 mb-6">
+            <MudTextField @bind-Value="SearchTerm" Placeholder="Search for an item" 
+                          Variant="Variant.Filled" Adornment="Adornment.End" 
+                          AdornmentIcon="@Icons.Material.Filled.Search" Margin="Margin.Dense" />
+            <MudSelect T="string" Label="Filter" Variant="Variant.Outlined" Margin="Margin.Dense" Style="width: 120px;">
+                <MudSelectItem Value="@("All")" />
+            </MudSelect>
+        </div>
+
+        @foreach (var parent in FilteredProducts)
+        {
+            <MudPaper Outlined="true" Class="mb-2 overflow-hidden">
+                <MudExpansionPanel DisableGutters="true" Style="background: transparent;">
+                    <TitleContent>
+                        <div class="d-flex align-center py-2">
+                            <MudAvatar Variant="Variant.Outlined" Square="true" Size="Size.Large" Class="mr-3">
+                                <MudImage Src="@($"/Images/products/{parent.ImageFileName ?? "placeholder.png"}")" />
+                            </MudAvatar>
+                            <div class="flex-grow-1">
+                                <MudText Typo="Typo.body1"><b>@parent.ParentName</b></MudText>
+                            </div>
+                            <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">
+                                Selected: @(parent.Variants.Sum(v => v.InputQty))
+                            </MudChip>
+                        </div>
+                    </TitleContent>
+                    <ChildContent>
+                        <MudDivider />
+                        @foreach (var v in parent.Variants)
+                        {
+                            <div class="d-flex align-center justify-space-between pa-4 border-bottom">
+                                <MudText Typo="Typo.body2">@v.VariantName</MudText>
+                                <div style="width: 100px;">
+                                    <MudNumericField @bind-Value="v.InputQty" Min="0" Max="@v.StockAvailable" 
+                                                   Margin="Margin.Dense" Variant="Variant.Outlined" />
+                                </div>
+                            </div>
+                        }
+                    </ChildContent>
+                </MudExpansionPanel>
+            </MudPaper>
+        }
+
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" 
+                   Size="Size.Large" Class="mt-10 py-3" OnClick="() => ShowSummary = true"
+                   Disabled="@(!MasterProducts.Any(p => p.Variants.Any(v => v.InputQty > 0)))">
+            CONTINUE <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Class="ml-2"/>
+        </MudButton>
+    }
+    else
+    {
+        @* --- STEP 3: SALES SUMMARY --- *@
+        <MudLink OnClick="() => ShowSummary = false" Color="Color.Primary" Underline="Underline.None" Class="d-flex align-center mb-4">
+            <MudIcon Icon="@Icons.Material.Filled.ArrowBack" Size="Size.Small" Class="mr-1"/> BACK
+        </MudLink>
+
+        <MudText Typo="Typo.h4" Style="font-family: var(--title-font); font-weight: bold;">
+            <MudIcon Icon="@Icons.Material.Filled.ListAlt" Class="mr-2"/> Sales Summary
+        </MudText>
+
+        <MudChip T="string" Icon="@Icons.Material.Filled.TheaterComedy" Color="Color.Dark" Class="mt-4 mb-6">
+            @CurrentLocationName
+        </MudChip>
+
+        <MudText Typo="Typo.subtitle1" Class="mb-4"><b>Item(s) Sold</b></MudText>
+
+        @foreach (var item in GetItemsForSummary())
+        {
+            <MudPaper Class="pa-4 mb-3 d-flex align-center" Elevation="0" Style="background-color: #F5F5F5;">
+                 <MudAvatar Variant="Variant.Outlined" Square="true" Size="Size.Medium" Class="mr-4 bg-white">
+                    <MudImage Src="@($"/Images/products/{item.Image}")" />
+                </MudAvatar>
+                <div>
+                    <MudText Typo="Typo.body1"><b>@item.Name</b></MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        Size: @item.Variant <br />
+                        Qty: @item.Qty items
+                    </MudText>
+                </div>
+            </MudPaper>
+        }
+
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" 
+                   Size="Size.Large" Class="mt-8 py-3" OnClick="ProcessCheckout">
+            CONFIRM SALE
+        </MudButton>
+    }
+</MudContainer>
+
+@code {
+    public static int SelectedLocationId;
+    private string SearchTerm = "";
+    private bool ShowSummary = false;
+
+    private List<Location> Locations = new();
+    private List<SalesParentDTO> MasterProducts = new();
+
+    private string CurrentLocationName => Locations.FirstOrDefault(l => l.Id == SelectedLocationId)?.Name ?? "";
+
+    private IEnumerable<SalesParentDTO> FilteredProducts => 
+        string.IsNullOrEmpty(SearchTerm) ? MasterProducts : MasterProducts.Where(p => p.ParentName.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase));
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var db = await DbFactory.CreateDbContextAsync();
+        Locations = await db.Locations.Where(l => l.IsActive).OrderBy(l => l.Name).ToListAsync();
+        if (SelectedLocationId > 0) await LoadProducts();
+    }
+
+    private async Task OnLocationChanged(int id)
+    {
+        SelectedLocationId = id;
+        await LoadProducts();
+    }
+
+    private void ResetLocation() { SelectedLocationId = 0; ShowSummary = false; }
+
+    private async Task LoadProducts()
+    {
+        using var db = await DbFactory.CreateDbContextAsync();
+        var stockAtLocation = await db.ProductLocations
+            .Include(pl => pl.Product).ThenInclude(p => p.Image)
+            .Include(pl => pl.Product).ThenInclude(p => p.ParentProduct!).ThenInclude(pp => pp.Image)
+            .Where(pl => pl.LocationId == SelectedLocationId && pl.Quantity > 0)
+            .ToListAsync();
+
+        MasterProducts = stockAtLocation
+            .GroupBy(s => s.Product.ParentProductId ?? s.Product.Id) 
+            .Select(group => {
+                var firstItem = group.First().Product;
+                var isChild = firstItem.ParentProductId != null;
+                return new SalesParentDTO {
+                    ParentName = isChild ? (firstItem.ParentProduct?.Name ?? firstItem.Name) : firstItem.Name,
+                    ImageFileName = isChild ? (firstItem.ParentProduct?.Image?.FileName ?? firstItem.Image?.FileName) : firstItem.Image?.FileName,
+                    Variants = group.Select(v => new SalesVariantDTO {
+                        Id = v.ProductId,
+                        VariantName = GenerateVariantName(v.Product),
+                        StockAvailable = v.Quantity,
+                        Price = v.Product.Price,
+                        FullName = v.Product.Name
+                    }).OrderBy(v => v.VariantName).ToList()
+                };
+            }).OrderBy(p => p.ParentName).ToList();
+    }
+
+    private static string GenerateVariantName(Product p)
+    {
+        var parts = new List<string>();
+        if (p.Size.HasValue && p.Size != ProductSize.NA) parts.Add(p.Size.ToString()!);
+        if (p.Color.HasValue && p.Color != ProductColor.NA) parts.Add(p.Color.ToString()!);
+        return parts.Any() ? string.Join(" / ", parts) : "Standard";
+    }
+
+    private List<SummaryItem> GetItemsForSummary()
+    {
+        return MasterProducts.SelectMany(p => p.Variants.Where(v => v.InputQty > 0)
+            .Select(v => new SummaryItem { 
+                Name = p.ParentName, 
+                Variant = v.VariantName, 
+                Qty = v.InputQty, 
+                Image = p.ImageFileName ?? "placeholder.png" 
+            })).ToList();
+    }
+
+    private async Task ProcessCheckout()
+    {
+        using var db = await DbFactory.CreateDbContextAsync();
+        foreach (var parent in MasterProducts)
+        {
+            foreach (var v in parent.Variants.Where(v => v.InputQty > 0))
+            {
+                var stock = await db.ProductLocations.FirstOrDefaultAsync(pl => pl.ProductId == v.Id && pl.LocationId == SelectedLocationId);
+                if (stock != null)
+                {
+                    stock.Quantity -= v.InputQty;
+                    db.Sales.Add(new Sale { 
+                        ProductId = v.Id, 
+                        LocationId = SelectedLocationId, 
+                        QuantitySold = v.InputQty, 
+                        UnitPriceAtSale = v.Price,
+                        SaleDate = DateTime.UtcNow 
+                    });
+                }
+            }
+        }
+        await db.SaveChangesAsync();
+        ShowSummary = false;
+        await LoadProducts();
+    }
+
+    public class SalesParentDTO {
+        public string ParentName { get; set; } = "";
+        public string? ImageFileName { get; set; }
+        public List<SalesVariantDTO> Variants { get; set; } = new();
+    }
+
+    public class SalesVariantDTO {
+        public int Id { get; set; }
+        public string VariantName { get; set; } = "";
+        public string FullName { get; set; } = "";
+        public int StockAvailable { get; set; }
+        public int InputQty { get; set; } 
+        public decimal Price { get; set; }
+    }
+
+    public class SummaryItem {
+        public string Name { get; set; } = "";
+        public string Variant { get; set; } = "";
+        public int Qty { get; set; }
+        public string Image { get; set; } = "";
+    }
+}

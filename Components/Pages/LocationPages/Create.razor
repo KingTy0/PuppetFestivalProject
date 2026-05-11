@@ -1,0 +1,61 @@
+@page "/Locations/create"
+@attribute [Authorize]
+@using PuppetFestAPP.Web.Data
+@using Microsoft.EntityFrameworkCore
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject NavigationManager Navigation
+
+<PageTitle>Create Location</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
+    <MudText Typo="Typo.h4" Class="mb-4">Create Location</MudText>
+
+    <EditForm Model="Form" OnValidSubmit="CreateLocation">
+        <DataAnnotationsValidator />
+        
+        <MudPaper Elevation="1" Class="pa-4">
+            <MudStack Spacing="3">
+                <MudTextField Label="Name" @bind-Value="Form.Name" For="@(() => Form.Name)" Variant="Variant.Outlined" />
+
+                <MudTextField Label="Address" @bind-Value="Form.Address" For="@(() => Form.Address)" Variant="Variant.Outlined" />
+
+                <MudSelect Label="Type" @bind-Value="Form.Type" Variant="Variant.Outlined">
+                    @foreach (var type in Enum.GetValues<LocationType>())
+                    {
+                        <MudSelectItem Value="@type">@type</MudSelectItem>
+                    }
+                </MudSelect>
+
+                <MudStack Row="true" Class="mt-4" Spacing="2">
+                    <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Create</MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" href="/Locations">Cancel</MudButton>
+                </MudStack>
+            </MudStack>
+        </MudPaper>
+    </EditForm>
+</MudContainer>
+
+@code {
+    [SupplyParameterFromForm]
+    public LocationFormModel Form { get; set; } = new();
+
+    private async Task CreateLocation()
+    {
+        using var context = await DbFactory.CreateDbContextAsync();
+        context.Locations.Add(new Location
+        {
+            Name = Form.Name,
+            Address = Form.Address,
+            Type = Form.Type
+        });
+        await context.SaveChangesAsync();
+        Navigation.NavigateTo("/Locations");
+    }
+
+    public class LocationFormModel
+    {
+        public string Name { get; set; } = "";
+        public string Address { get; set; } = "";
+        public LocationType Type { get; set; } = LocationType.Store;
+    }
+}

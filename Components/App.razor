@@ -5,17 +5,25 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <base href="/" />
-    <link rel="stylesheet" href="@Assets["lib/bootstrap/dist/css/bootstrap.min.css"]" />
-    <link rel="stylesheet" href="@Assets["app.css"]" />
-    <link rel="stylesheet" href="@Assets["PuppetFestAPP.Web.styles.css"]" />
+    
+    @* MudBlazor Styles *@
+    <link href="https://googleapis.com" rel="stylesheet" />
+    <link rel="stylesheet" href="_content/MudBlazor/MudBlazor.min.css" />
+    
+    @* App Styles *@
+    <link rel="stylesheet" href="app.css" />
+    <link rel="stylesheet" href="PuppetFestAPP.Web.styles.css" />
+    
     <ImportMap />
     <link rel="icon" type="image/png" href="favicon.png" />
-    <HeadOutlet />
+    <HeadOutlet @rendermode="InteractiveServer"/>
 </head>
 
 <body>
     <Routes />
     <script src="_framework/blazor.web.js"></script>
+    @* MudBlazor Script *@
+    <script src="_content/MudBlazor/MudBlazor.min.js"></script>
 </body>
 
 </html>

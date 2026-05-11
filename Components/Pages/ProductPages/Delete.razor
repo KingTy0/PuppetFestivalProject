@@ -1,0 +1,100 @@
+@page "/Products/delete/{Id:int}"
+@attribute [Authorize]
+@using Microsoft.EntityFrameworkCore
+@using PuppetFestAPP.Web.Data
+@rendermode InteractiveServer
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject NavigationManager NavigationManager
+
+<PageTitle>Delete Product</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="mt-4">
+    <MudText Typo="Typo.h4" Class="mb-4">Delete Product</MudText>
+
+    @if (Product is null)
+    {
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+    }
+    else
+    {
+        <MudPaper Elevation="1" Class="pa-4">
+            <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="mb-4">
+                Are you sure you want to delete this product?
+            </MudAlert>
+
+            <MudSimpleTable Style="overflow-x: auto;">
+                <tbody>
+                    <tr><td><strong>Name</strong></td><td>@Product.Name</td></tr>
+                    <tr><td><strong>Price</strong></td><td>@Product.Price.ToString("C")</td></tr>
+                    <tr><td><strong>Size</strong></td><td>@Product.Size</td></tr>
+                    <tr><td><strong>Color</strong></td><td>@Product.Color</td></tr>
+                    <tr><td><strong>Material</strong></td><td>@Product.Material</td></tr>
+                </tbody>
+            </MudSimpleTable>
+
+            <MudStack Row="true" Class="mt-6" Spacing="2">
+                <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="DeleteProduct">
+                    Permanently Delete
+                </MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Href="/Products">
+                    Cancel
+                </MudButton>
+            </MudStack>
+        </MudPaper>
+    }
+</MudContainer>
+
+@code {
+    private Product? Product;
+
+    [Parameter]
+    public int Id { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        // FIX: Use Async context creation
+        using var context = await DbFactory.CreateDbContextAsync();
+        Product = await context.Products.FirstOrDefaultAsync(m => m.Id == Id);
+
+        if (Product is null)
+        {
+            NavigationManager.NavigateTo("/Products");
+        }
+    }
+
+    private async Task DeleteProduct()
+    {
+        using var context = await DbFactory.CreateDbContextAsync();
+        
+        // 1. Capture info for redirect before deleting
+        var parentId = Product?.ParentProductId;
+
+        // 2. Fetch with related data to avoid foreign key crashes
+        var productToDelete = await context.Products
+            .Include(p => p.Inventories)
+            .FirstOrDefaultAsync(p => p.Id == Id);
+
+        if (productToDelete != null)
+        {
+            // FIX: Use context.RemoveRange directly. 
+            // This allows EF to handle the ICollection<Inventory> type correctly.
+            if (productToDelete.Inventories != null && productToDelete.Inventories.Any())
+            {
+                context.RemoveRange(productToDelete.Inventories);
+            }
+            
+            context.Products.Remove(productToDelete);
+            await context.SaveChangesAsync();
+        }
+
+        // 3. Smart Redirect
+        if (parentId.HasValue)
+        {
+            NavigationManager.NavigateTo($"/Products/details/{parentId.Value}");
+        }
+        else
+        {
+            NavigationManager.NavigateTo("/Products");
+        }
+    }
+}
