@@ -1,80 +1,98 @@
-﻿<style>
-    /* CSS WAS GLUING THE BOXES DROPDOWN OPEN, THIS IS AN OVERRIDE UNTIL FURTHER NOTICE */
-    .mud-nav-group-items {
-        display: inherit; 
+﻿@using Microsoft.AspNetCore.Components.Authorization
+@implements IDisposable
+@inject NavigationManager NavigationManager
+
+
+<style>
+    .mud-navmenu {
+        background-color: #5D1E21;
+        color: white !important;
+        height: 100%;
+        padding-top: 12px;
     }
-    
-    
-    .mud-nav-group-header {
-        height: auto !important;
-        min-height: 3rem;
+    .mud-nav-link, .mud-nav-group-header, .mud-nav-link .mud-nav-link-icon-default {
+        color: rgba(255, 255, 255, 0.85) !important;
+    }
+    .mud-nav-link.active {
+        background-color: rgba(255, 255, 255, 0.1) !important;
+        color: #ffffff !important;
+    }
+    .mud-nav-link:hover {
+        background-color: rgba(255, 255, 255, 0.05) !important;
+    }
+    .mud-divider {
+        border-color: rgba(255, 255, 255, 0.12) !important;
+        margin: 8px 0;
+    }
+    .logout-button {
+        justify-content: flex-start !important;
+        text-transform: none !important;
+        color: rgba(255, 255, 255, 0.85) !important;
+        padding-left: 16px !important;
+        font-weight: 400 !important;
     }
 </style>
 
 
-
-@implements IDisposable
-@inject NavigationManager NavigationManager
-
 <MudNavMenu>
-    <MudNavLink Href="" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">Home</MudNavLink>
-    
-    <AuthorizeView>
+    <AuthorizeView Context="authContext">
         <Authorized>
-            <MudNavLink Href="dashboard" Icon="@Icons.Material.Filled.Dashboard">Dashboard</MudNavLink>
-        </Authorized>
-    </AuthorizeView>
+            @* 1. Core Navigation *@
+            <MudNavLink Href="dashboard" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">Dashboard</MudNavLink>
+            <MudNavLink Href="alerts" Icon="@Icons.Material.Filled.Notifications">Alerts</MudNavLink>
+            <MudNavLink Href="/locations" Icon="@Icons.Material.Filled.LocationOn">Locations</MudNavLink>
+            <MudNavLink Href="products" Icon="@Icons.Material.Filled.LibraryBooks">Product Catalog</MudNavLink>
+            <MudNavLink Href="inventory/stock" Icon="@Icons.Material.Filled.Inventory">Inventory</MudNavLink>
+           
+            @* FIXED: Swapped 'TwelveMp' for 'AppRegistration' *@
+            <MudNavLink Href="/inventory/recount" Icon="@Icons.Material.Filled.AppRegistration">Inventory Recount</MudNavLink>
 
-    <MudNavLink Href="products" Icon="@Icons.Material.Filled.Storefront">Catalog</MudNavLink>
-    <MudNavLink Href="inventory" Icon="@Icons.Material.Filled.Inventory">Inventory</MudNavLink>
-    <MudNavLink Href="/locations" Icon="@Icons.Material.Filled.LocationOn">Locations</MudNavLink>
-    <MudNavLink Href="sales/create" Icon="@Icons.Material.Filled.PointOfSale">Process Sale</MudNavLink>
-    
-    <MudNavGroup Title="Boxes" Icon="@Icons.Material.Filled.Archive" >
-        <MudNavLink Href="/inventory/transfer/create" Icon="@Icons.Material.Filled.AddBox">Pack a Box</MudNavLink>
-        <MudNavLink Href="/inventory/transfers" Icon="@Icons.Material.Filled.ListAlt">History</MudNavLink>
-    </MudNavGroup>
 
-    <MudNavLink Href="/inventory/recount" Icon="@Icons.Material.Filled.Inventory"> Recount Inventory </MudNavLink>
+            <MudDivider />
 
-    <MudDivider Class="my-2" />
 
-    <AuthorizeView>
-        <Authorized>
-            <MudNavLink Href="Account/Manage" Icon="@Icons.Material.Filled.Person">@context.User.Identity?.Name</MudNavLink>
-            <div class="px-4 py-2">
+            @* 2. Box Management *@
+            <MudNavLink Href="/inventory/transfer/create" Icon="@Icons.Material.Filled.MoveToInbox">Pack a Box</MudNavLink>
+            <MudNavLink Href="/inventory/transfers" Icon="@Icons.Material.Filled.CheckBox">Outgoing/Incoming Boxes</MudNavLink>
+            <MudNavLink Href="sales/create" Icon="@Icons.Material.Filled.AttachMoney">Record Sales</MudNavLink>
+
+
+            <MudDivider />
+
+
+            @* 3. Account & Admin *@
+            <MudNavLink Href="Account/Manage" Icon="@Icons.Material.Filled.Person">Account Settings</MudNavLink>
+           
+            @if (authContext.User.IsInRole("Admin"))
+            {
+                <MudNavLink Href="admin/users" Icon="@Icons.Material.Filled.Group">Admin User Management</MudNavLink>
+            }
+
+
+            <div class="mt-4">
                 <form action="Account/Logout" method="post">
                     <AntiforgeryToken />
                     <input type="hidden" name="ReturnUrl" value="@currentUrl" />
-                    <MudButton ButtonType="ButtonType.Submit" 
-                               Variant="Variant.Text" 
-                               Color="Color.Inherit" 
+                    <MudButton ButtonType="ButtonType.Submit"
+                               Variant="Variant.Text"
                                StartIcon="@Icons.Material.Filled.Logout"
                                FullWidth="true"
-                               Style="justify-content: flex-start; text-transform: none;">
-                        Logout
+                               Class="logout-button">
+                        Log Out
                     </MudButton>
                 </form>
             </div>
         </Authorized>
         <NotAuthorized>
-            <MudNavLink Href="Account/Register" Icon="@Icons.Material.Filled.PersonAdd">Register</MudNavLink>
-            <MudNavLink Href="Account/Login" Icon="@Icons.Material.Filled.Login">Login</MudNavLink>
+            <MudNavLink Href="Account/Login" Icon="@Icons.Material.Filled.Login">Log In</MudNavLink>
         </NotAuthorized>
-    </AuthorizeView>
-
-    <AuthorizeView Roles="Admin">
-        <Authorized>
-            <MudDivider Class="my-2" />
-            <MudText Typo="Typo.caption" Class="px-4 mud-text-secondary">ADMIN</MudText>
-            <MudNavLink Href="admin/users" Icon="@Icons.Material.Filled.People">User Management</MudNavLink>
-            <MudNavLink Href="admin/storage" Icon="@Icons.Material.Filled.CloudUpload">Storage Admin</MudNavLink>
-        </Authorized>
     </AuthorizeView>
 </MudNavMenu>
 
+
 @code {
     private string? currentUrl;
+
 
     protected override void OnInitialized()
     {
@@ -82,11 +100,13 @@
         NavigationManager.LocationChanged += OnLocationChanged;
     }
 
+
     private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
     {
         currentUrl = NavigationManager.ToBaseRelativePath(e.Location);
         StateHasChanged();
     }
+
 
     public void Dispose()
     {
