@@ -144,6 +144,34 @@ public static class SeedData
 
 
 
+        // Seed theater locations
+var theaters = new[]
+{
+    new Location { Name = "The Rhapsody Theater", Address = "1328 W. Morse Ave, Chicago, IL", Type = LocationType.Event },
+    new Location { Name = "Music Box Theatre", Address = "3733 N. Southport Ave, Chicago, IL", Type = LocationType.Event },
+    new Location { Name = "Constellation", Address = "3111 N. Western Ave, Chicago, IL", Type = LocationType.Event },
+    new Location { Name = "The Biograph's Zacek McVay Theater", Address = "2433 N. Lincoln Ave, Chicago, IL", Type = LocationType.Event },
+    new Location { Name = "Steppenwolf's Merle Reskin Space", Address = "1624 N. Halstead Ave, Chicago, IL", Type = LocationType.Event },
+    new Location { Name = "Chopin Theatre", Address = "1543 W. Division St, Chicago, IL", Type = LocationType.Event },
+    new Location { Name = "Wirtz Center Chicago Abbott Hall", Address = "710 N. Lake Shore Dr, Chicago, IL", Type = LocationType.Event },
+    new Location { Name = "Warwick Allerton Hotel", Address = "701 N. Michigan Ave, Chicago, IL", Type = LocationType.Event },
+    new Location { Name = "Studebaker Theater at the Fine Arts Building", Address = "410 S. Michigan Ave, Chicago, IL", Type = LocationType.Event },
+    new Location { Name = "Festival Headquarters + Puppet Hub", Address = "410 S. Michigan Ave, Chicago, IL", Type = LocationType.Event },
+    new Location { Name = "Depaul's Merle Reskin Theatre", Address = "60 E. Balbo Dr, Chicago, IL", Type = LocationType.Event },
+    new Location { Name = "Dance Center Columbia College Chicago", Address = "1306 S. Michigan Ave, Chicago, IL", Type = LocationType.Event },
+    new Location { Name = "Reva & David Logan Center for the Arts", Address = "915 E. 60th St, Chicago, IL", Type = LocationType.Event },
+};
+
+foreach (var theater in theaters)
+{
+    if (!context.Locations.Any(l => l.Name == theater.Name))
+        context.Locations.Add(theater);
+}
+await context.SaveChangesAsync();
+
+
+
+
 
 
 

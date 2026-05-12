@@ -35,7 +35,8 @@
                Label="Select a location"
                Variant="Variant.Outlined"
                @bind-Value="SelectedLocation"
-               AnchorOrigin="Origin.BottomCenter">
+               AnchorOrigin="Origin.BottomCenter"
+               TransformOrigin="Origin.TopCenter">
         @foreach (var loc in AllLocations)
         {
             <MudSelectItem Value="@loc">@loc.Name</MudSelectItem>
@@ -188,57 +189,29 @@
     }
 
     protected override async Task OnInitializedAsync()
-    {
-        using var db = await DbFactory.CreateDbContextAsync();
+{
+    using var db = await DbFactory.CreateDbContextAsync();
 
-        AllLocations = await db.Locations
-            .Where(l => l.IsActive)
-            .OrderBy(l => l.Name)
-            .ToListAsync();
+    AllLocations = await db.Locations
+        .Where(l => l.IsActive && l.Type != LocationType.Van)
+        .OrderBy(l => l.Name)
+        .ToListAsync();
 
-        StockData = await db.ProductLocations
-            .Include(pl => pl.Product)
-                .ThenInclude(p => p.Image)
-            .Include(pl => pl.Product)
-                .ThenInclude(p => p.ParentProduct!)
-                    .ThenInclude(pp => pp.Image)
-            .Include(pl => pl.Location)
-            .OrderBy(pl => pl.Location.Name)
-            .ThenBy(pl => pl.Product.Name)
-            .ToListAsync();
-
-        // Add zero-quantity placeholders for products not yet in any location
-        var allVariants = await db.Products
-            .Include(p => p.Image)
-            .Include(p => p.ParentProduct!)
+    StockData = await db.ProductLocations
+        .Include(pl => pl.Product)
+            .ThenInclude(p => p.Image)
+        .Include(pl => pl.Product)
+            .ThenInclude(p => p.ParentProduct!)
                 .ThenInclude(pp => pp.Image)
-            .Where(p => p.IsActive)
-            .ToListAsync();
+        .Include(pl => pl.Location)
+        .Where(pl => pl.Quantity > 0)
+        .OrderBy(pl => pl.Location.Name)
+        .ThenBy(pl => pl.Product.Name)
+        .ToListAsync();
 
-        var existingKeys = StockData
-            .Select(s => (s.ProductId, s.LocationId))
-            .ToHashSet();
-
-        foreach (var location in AllLocations)
-        {
-            foreach (var product in allVariants)
-            {
-                if (!existingKeys.Contains((product.Id, location.Id)))
-                {
-                    StockData.Add(new ProductLocation
-                    {
-                        LocationId = location.Id,
-                        Location = location,
-                        ProductId = product.Id,
-                        Product = product,
-                        Quantity = 0
-                    });
-                }
-            }
-        }
-
-        SelectedLocation = AllLocations.FirstOrDefault();
-    }
+    SelectedLocation = AllLocations.FirstOrDefault(l => l.Type == LocationType.Store) 
+                   ?? AllLocations.FirstOrDefault();
+}
 
     private List<StockGroupDTO> GetGroupedStock(int locationId)
     {

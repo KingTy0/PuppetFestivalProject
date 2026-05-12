@@ -17,12 +17,16 @@
 
             <MudText Align="Align.Left" Typo="Typo.subtitle1" Class="mb-2"><b>Select a location to continue:</b></MudText>
             <MudSelect T="int" Value="SelectedLocationId" ValueChanged="OnLocationChanged" 
-                       Variant="Variant.Outlined" Placeholder="Select a location" AnchorOrigin="Origin.BottomCenter">
-                @foreach (var loc in Locations)
-                {
-                    <MudSelectItem T="int" Value="@loc.Id">@loc.Name</MudSelectItem>
-                }
-            </MudSelect>
+           Variant="Variant.Outlined" 
+           Placeholder="Select a location"
+           AnchorOrigin="Origin.BottomLeft" 
+           TransformOrigin="Origin.TopLeft">
+    <MudSelectItem T="int" Value="0" Disabled="true">Select a location</MudSelectItem>
+    @foreach (var loc in Locations.Where(l => l.Type != LocationType.Van))
+    {
+        <MudSelectItem T="int" Value="@loc.Id">@loc.Name</MudSelectItem>
+    }
+</MudSelect>
 
             <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" 
                        Size="Size.Large" Class="mt-8 py-3" OnClick="() => { /* Triggered by ValueChanged */ }"
