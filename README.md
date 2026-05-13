@@ -49,3 +49,4 @@ You can see the live branch [HERE](https://ccpuppetfest-backstage-gaaad2hyh6d5bu
   * Restructured notifications page
 * Mia (She/Her)
   * Implemented email authentication system
+  * About Page
