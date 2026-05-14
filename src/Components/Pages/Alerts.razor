@@ -6,23 +6,25 @@
 
 <PageTitle>Alerts</PageTitle>
 
-<MudContainer MaxWidth="MaxWidth.Large" Class="mt-6">
-    <MudText Typo="Typo.h4">Alerts</MudText>
-    <MudText Typo="Typo.subtitle1" Color="Color.Secondary" Class="mb-4">
-        Inventory notifications for location-level low stock and overall product shortages.
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-6">
+    <MudText Class="my-5"><h1>Alerts</h1></MudText>
+    <MudText Color="Color.Secondary" Class="mb-4">
+        <p class="body-1">Inventory notifications for location-level low stock and overall product shortages.</p>
     </MudText>
 
-    <MudPaper Class="pa-4 mb-6" Elevation="1">
-        <MudText Typo="Typo.body2" Color="Color.Secondary">
-            Low stock is defined as less than <b>@InventoryAlerts.LowStockThreshold</b> units. Critical stock is less than or equal to <b>@InventoryAlerts.CriticalStockThreshold</b> units.
+    <MudDivider></MudDivider>
+
+    <MudAlert Severity="Severity.Info" Class="mb-4">
+        <MudText>
+            <p class="body-2">Low stock is defined as less than <b>@InventoryAlerts.LowStockThreshold</b> units. Critical stock is less than or equal to <b>@InventoryAlerts.CriticalStockThreshold</b> units.</p>
         </MudText>
-    </MudPaper>
+    </MudAlert>
 
     <MudGrid GutterSize="3">
         <MudItem xs="12" md="6">
             <MudPaper Elevation="1" Class="pa-4 h-100">
                 <MudStack Direction="Row" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
-                    <MudText Typo="Typo.h5">Location Alerts</MudText>
+                    <MudText><h3>Location Alerts</h3></MudText>
                     <MudChip T="string" Color="Color.Warning" Variant="Variant.Outlined" Size="Size.Small">
                         @LowStockByLocation.Count low items
                     </MudChip>
@@ -68,7 +70,7 @@
         <MudItem xs="12" md="6">
             <MudPaper Elevation="1" Class="pa-4 h-100">
                 <MudStack Direction="Row" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
-                    <MudText Typo="Typo.h5">Overall Stock Alerts</MudText>
+                    <MudText><h3>Overall Stock Alerts</h3></MudText>
                     <MudChip T="string" Color="Color.Info" Variant="Variant.Outlined" Size="Size.Small">
                         @LowStockByProduct.Count products
                     </MudChip>

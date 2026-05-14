@@ -20,35 +20,43 @@
                 <p class="body-1">Welcome to Backstage!</p>
             </MudText>
 
-            @* ── Quick Actions moved from Home ── *@
+            @* ── Quick Actions ── *@
             <MudPaper Elevation="1" Class="pa-4 mb-6">
-                <MudText Typo="Typo.h6" Class="mb-4">Quick Actions</MudText>
-                <MudGrid Justify="Justify.Center">
+                <MudText Class="mb-4"><p class="subtitle-2">Quick Actions</p></MudText>
+                <MudGrid Justify="Justify.Center" Style="padding-left: 0px; padding-right: 0px;">
+                    @*
                     <MudItem xs="6" sm="3">
                         <MudStack AlignItems="AlignItems.Center">
                             <MudFab Color="Color.Tertiary" StartIcon="@Icons.Material.Filled.BarChart" Size="Size.Large" href="/dashboard" />
                             <MudText Typo="Typo.subtitle1"><b>Analytics</b></MudText>
                         </MudStack>
                     </MudItem>
+                    *@
 
-                    <MudItem xs="6" sm="3">
+                    <MudItem xs="3" sm="5">
                         <MudStack AlignItems="AlignItems.Center">
                             <MudFab Color="Color.Tertiary" StartIcon="@Icons.Material.Filled.Inventory2" Size="Size.Large" href="/inventory/transfer/create" />
-                            <MudText Typo="Typo.subtitle1"><b>Pack a Box</b></MudText>
+                            <MudText>
+                                <p class="subtitle-2"><b>Pack a Box</b></p>
+                            </MudText>
                         </MudStack>
                     </MudItem>
 
-                    <MudItem xs="6" sm="3">
+                    <MudItem xs="3" sm="5">
                         <MudStack AlignItems="AlignItems.Center">
                             <MudFab Color="Color.Tertiary" StartIcon="@Icons.Material.Filled.MenuBook" Size="Size.Large" href="/inventory/stock" />
-                            <MudText Typo="Typo.subtitle1"><b>Inventory</b></MudText>
+                            <MudText>
+                                <p class="subtitle-2"><b>Inventory</b></p>
+                            </MudText>
                         </MudStack>
                     </MudItem>
 
-                    <MudItem xs="6" sm="3">
+                    <MudItem xs="3" sm="5">
                         <MudStack AlignItems="AlignItems.Center">
                             <MudFab Color="Color.Tertiary" StartIcon="@Icons.Material.Filled.LibraryBooks" Size="Size.Large" href="/products" />
-                            <MudText Typo="Typo.subtitle1"><b>Catalog</b></MudText>
+                            <MudText>
+                                <p class="subtitle-2"><b>Catalog</b></p>
+                            </MudText>
                         </MudStack>
                     </MudItem>
                 </MudGrid>
@@ -58,7 +66,7 @@
                 @* ── Revenue Card ── *@
                 <MudItem xs="12" md="4">
                     <MudPaper Elevation="1" Class="pa-4 text-center">
-                        <MudText Typo="Typo.subtitle2" Color="Color.Secondary">Today's Revenue</MudText>
+                        <MudText Class="mb-4"><p class="subtitle-2">Today's Revenue</p></MudText>
                         <MudText Typo="Typo.h4" Class="mt-2">@TotalRevenue.ToString("C")</MudText>
                         <MudText Typo="Typo.body2" Color="Color.Success">
                             <MudIcon Icon="@Icons.Material.Filled.ShoppingCart" Size="Size.Small" /> From recorded sales
@@ -69,7 +77,7 @@
                 @* ── Shrinkage Card ── *@
                 <MudItem xs="12" md="4">
                     <MudPaper Elevation="1" Class="pa-4 text-center">
-                        <MudText Typo="Typo.subtitle2" Color="Color.Secondary">Inventory Shrinkage</MudText>
+                        <MudText Class="mb-4"><p class="subtitle-2">Inventory Shrinkage</p></MudText>
                         <MudText Typo="Typo.h4" Color="Color.Error" Class="mt-2">@ShrinkageCount</MudText>
                         <MudText Typo="Typo.body2" Color="Color.Secondary">Extra items sold via manual count</MudText>
                     </MudPaper>
@@ -78,7 +86,7 @@
                 @* ── Roles Card ── *@
                 <MudItem xs="12" md="4">
                     <MudPaper Elevation="1" Class="pa-4 text-center">
-                        <MudText Typo="Typo.subtitle2" Color="Color.Secondary">Active Roles</MudText>
+                        <MudText Class="mb-4"><p class="subtitle-2">Active Role(s)</p></MudText>
                         <MudStack Direction="Row" Wrap="Wrap.Wrap" Justify="Justify.Center" Class="mt-2">
                             @foreach (var role in UserRoles)
                             {
@@ -91,7 +99,7 @@
 
             @* ── Sales Visualizer ── *@
             <MudPaper Elevation="1" Class="pa-4 mt-6">
-                <MudText Typo="Typo.h6">Manual vs. System Sales (Today)</MudText>
+                <MudText Class="mb-4"><p class="subtitle-2">Manual vs. System Sales (Today)</p></MudText>
 
                 @if (TotalUnitsSold > 0)
                 {
@@ -119,7 +127,7 @@
                 <MudItem xs="12" md="6">
                     <MudPaper Elevation="1" Class="pa-4 h-100">
                         <MudStack Direction="Row" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
-                            <MudText Typo="Typo.h5">Recent Transfers</MudText>
+                            <MudText Class="mb-4"><p class="subtitle-2">Recent Transfers</p></MudText>
                             <MudButton Variant="Variant.Text" Color="Color.Primary" href="/inventory/transfers">View All</MudButton>
                         </MudStack>
 
@@ -148,7 +156,7 @@
                 <MudItem xs="12" md="6">
                     <MudPaper Elevation="1" Class="pa-4 h-100">
                         <MudStack Direction="Row" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
-                            <MudText Typo="Typo.h5">Low Stock Alerts</MudText>
+                            <MudText Class="mb-4"><p class="subtitle-2">Low Stock Alerts</p></MudText>
                             <MudButton Variant="Variant.Text" Color="Color.Primary" href="/inventory/stock">View Stock</MudButton>
                         </MudStack>
 
