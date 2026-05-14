@@ -3,7 +3,8 @@
 @rendermode InteractiveServer
 @inject ISnackbar Snackbar
 
-<MudDialogContent Class="pa-0">
+<MudDialog>
+<DialogContent>
 
     @* Sticky header with search + filter *@
     <MudPaper Elevation="0" Class="pa-3 pb-2" Style="position:sticky;top:0;z-index:10;border-bottom:1px solid var(--mud-palette-divider)">
@@ -126,7 +127,8 @@
     }
 </div>
 
-</MudDialogContent>
+</DialogContent>
+</MudDialog>
 
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
@@ -141,7 +143,7 @@
     .Where(x => string.IsNullOrWhiteSpace(searchString) || 
             (x.Product?.Name.Contains(searchString, StringComparison.OrdinalIgnoreCase) ?? false))
     .Where(x => categoryFilter == null || x.Product?.Category?.Name == categoryFilter)
-    .Where(x => !lowStockOnly || x.Quantity <= 5)
+    .Where(x => !lowStockOnly || x.Quantity < InventoryAlerts.LowStockThreshold)
     .GroupBy(x => x.Product?.ParentProductId ?? x.Product?.Id ?? 0)
     .Select(g => {
         var firstItem = g.First().Product;

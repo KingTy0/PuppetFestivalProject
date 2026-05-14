@@ -72,7 +72,7 @@
             <div class="mt-4">
                 <form action="Account/Logout" method="post">
                     <AntiforgeryToken />
-                    <input type="hidden" name="ReturnUrl" value="@currentUrl" />
+                    <input type="hidden" name="ReturnUrl" value="Account/Login" />
                     <MudButton ButtonType="ButtonType.Submit"
                                Variant="Variant.Text"
                                StartIcon="@Icons.Material.Filled.Logout"

@@ -1,79 +1,199 @@
+@page "/"
 @page "/dashboard"
-@using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.EntityFrameworkCore
 @using PuppetFestAPP.Web.Data
-@attribute [Authorize]
 @rendermode InteractiveServer
 @inject IDbContextFactory<ApplicationDbContext> DbFactory
 @inject AuthenticationStateProvider AuthStateProvider
 
 <PageTitle>Dashboard - Puppet Fest Merch</PageTitle>
 
-<MudContainer MaxWidth="MaxWidth.Large" Class="mt-6">
-    <MudText Typo="Typo.h4">Hello, @UserName!</MudText>
-    <MudText Typo="Typo.subtitle1" Color="Color.Secondary" Class="mb-6">Welcome to the Puppet Festival Merchandise Management System.</MudText>
+<AuthorizeView>
+    <Authorized>
+        <MudContainer MaxWidth="MaxWidth.Medium">
 
-    <MudGrid GutterSize="3">
-        @* ── Revenue Card ── *@
-        <MudItem xs="12" md="4">
-            <MudPaper Elevation="1" Class="pa-4 text-center">
-                <MudText Typo="Typo.subtitle2" Color="Color.Secondary">Today's Revenue</MudText>
-                <MudText Typo="Typo.h4" Class="mt-2">@TotalRevenue.ToString("C")</MudText>
-                <MudText Typo="Typo.body2" Color="Color.Success">
-                    <MudIcon Icon="@Icons.Material.Filled.ShoppingCart" Size="Size.Small" /> From recorded sales
-                </MudText>
-            </MudPaper>
-        </MudItem>
-
-        @* ── Shrinkage Card ── *@
-        <MudItem xs="12" md="4">
-            <MudPaper Elevation="1" Class="pa-4 text-center">
-                <MudText Typo="Typo.subtitle2" Color="Color.Secondary">Inventory Shrinkage</MudText>
-                <MudText Typo="Typo.h4" Color="Color.Error" Class="mt-2">@ShrinkageCount</MudText>
-                <MudText Typo="Typo.body2" Color="Color.Secondary">Extra items sold via manual count</MudText>
-            </MudPaper>
-        </MudItem>
-
-        @* ── Roles Card ── *@
-        <MudItem xs="12" md="4">
-            <MudPaper Elevation="1" Class="pa-4 text-center">
-                <MudText Typo="Typo.subtitle2" Color="Color.Secondary">Active Roles</MudText>
-                <MudStack Direction="Row" Wrap="Wrap.Wrap" Justify="Justify.Center" Class="mt-2">
-                    @foreach (var role in UserRoles)
-                    {
-                        <MudChip T="string" Color="Color.Info" Variant="Variant.Filled">@role</MudChip>
-                    }
-                </MudStack>
-            </MudPaper>
-        </MudItem>
-    </MudGrid>
-
-    @* ── Sales Visualizer ── *@
-    <MudPaper Elevation="1" Class="pa-4 mt-6">
-        <MudText Typo="Typo.h6">Manual vs. System Sales (Today)</MudText>
-
-        @if (TotalUnitsSold > 0)
-        {
-            var systemPct = (double)SystemSoldUnits / TotalUnitsSold * 100;
-            var manualPct = (double)Math.Abs(ShrinkageCount) / TotalUnitsSold * 100;
-
-            <MudText Typo="Typo.subtitle2" Class="mt-4">System Sales: @SystemSoldUnits</MudText>
-            <MudProgressLinear Value="@systemPct" Color="Color.Primary" Height="10" Class="mt-1" />
-
-            <MudText Typo="Typo.subtitle2" Class="mt-4">Manual Adjustments: @Math.Abs(ShrinkageCount)</MudText>
-            <MudProgressLinear Value="@manualPct" Color="Color.Warning" Height="10" Class="mt-1" />
-
-            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-4 d-block">
-                Blue represents system-recorded sales. Yellow represents reconciliation discrepancies.
+            <MudText Class="mt-5 mb-2">
+                <h3>Hello, @UserName!</h3>
             </MudText>
-        }
-        else
-        {
-            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-4">No sales activity recorded today yet.</MudText>
-        }
-    </MudPaper>
-</MudContainer>
+            <MudText Color="Color.Secondary" Class="mb-6">
+                <p class="body-1">Welcome to Backstage!</p>
+            </MudText>
+
+            @* ── Quick Actions moved from Home ── *@
+            <MudPaper Elevation="1" Class="pa-4 mb-6">
+                <MudText Typo="Typo.h6" Class="mb-4">Quick Actions</MudText>
+                <MudGrid Justify="Justify.Center">
+                    <MudItem xs="6" sm="3">
+                        <MudStack AlignItems="AlignItems.Center">
+                            <MudFab Color="Color.Tertiary" StartIcon="@Icons.Material.Filled.BarChart" Size="Size.Large" href="/dashboard" />
+                            <MudText Typo="Typo.subtitle1"><b>Analytics</b></MudText>
+                        </MudStack>
+                    </MudItem>
+
+                    <MudItem xs="6" sm="3">
+                        <MudStack AlignItems="AlignItems.Center">
+                            <MudFab Color="Color.Tertiary" StartIcon="@Icons.Material.Filled.Inventory2" Size="Size.Large" href="/inventory/transfer/create" />
+                            <MudText Typo="Typo.subtitle1"><b>Pack a Box</b></MudText>
+                        </MudStack>
+                    </MudItem>
+
+                    <MudItem xs="6" sm="3">
+                        <MudStack AlignItems="AlignItems.Center">
+                            <MudFab Color="Color.Tertiary" StartIcon="@Icons.Material.Filled.MenuBook" Size="Size.Large" href="/inventory/stock" />
+                            <MudText Typo="Typo.subtitle1"><b>Inventory</b></MudText>
+                        </MudStack>
+                    </MudItem>
+
+                    <MudItem xs="6" sm="3">
+                        <MudStack AlignItems="AlignItems.Center">
+                            <MudFab Color="Color.Tertiary" StartIcon="@Icons.Material.Filled.LibraryBooks" Size="Size.Large" href="/products" />
+                            <MudText Typo="Typo.subtitle1"><b>Catalog</b></MudText>
+                        </MudStack>
+                    </MudItem>
+                </MudGrid>
+            </MudPaper>
+
+            <MudGrid GutterSize="3">
+                @* ── Revenue Card ── *@
+                <MudItem xs="12" md="4">
+                    <MudPaper Elevation="1" Class="pa-4 text-center">
+                        <MudText Typo="Typo.subtitle2" Color="Color.Secondary">Today's Revenue</MudText>
+                        <MudText Typo="Typo.h4" Class="mt-2">@TotalRevenue.ToString("C")</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Success">
+                            <MudIcon Icon="@Icons.Material.Filled.ShoppingCart" Size="Size.Small" /> From recorded sales
+                        </MudText>
+                    </MudPaper>
+                </MudItem>
+
+                @* ── Shrinkage Card ── *@
+                <MudItem xs="12" md="4">
+                    <MudPaper Elevation="1" Class="pa-4 text-center">
+                        <MudText Typo="Typo.subtitle2" Color="Color.Secondary">Inventory Shrinkage</MudText>
+                        <MudText Typo="Typo.h4" Color="Color.Error" Class="mt-2">@ShrinkageCount</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">Extra items sold via manual count</MudText>
+                    </MudPaper>
+                </MudItem>
+
+                @* ── Roles Card ── *@
+                <MudItem xs="12" md="4">
+                    <MudPaper Elevation="1" Class="pa-4 text-center">
+                        <MudText Typo="Typo.subtitle2" Color="Color.Secondary">Active Roles</MudText>
+                        <MudStack Direction="Row" Wrap="Wrap.Wrap" Justify="Justify.Center" Class="mt-2">
+                            @foreach (var role in UserRoles)
+                            {
+                                <MudChip T="string" Color="Color.Info" Variant="Variant.Filled">@role</MudChip>
+                            }
+                        </MudStack>
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
+
+            @* ── Sales Visualizer ── *@
+            <MudPaper Elevation="1" Class="pa-4 mt-6">
+                <MudText Typo="Typo.h6">Manual vs. System Sales (Today)</MudText>
+
+                @if (TotalUnitsSold > 0)
+                {
+                    var systemPct = (double)SystemSoldUnits / TotalUnitsSold * 100;
+                    var manualPct = (double)Math.Abs(ShrinkageCount) / TotalUnitsSold * 100;
+
+                    <MudText Typo="Typo.subtitle2" Class="mt-4">System Sales: @SystemSoldUnits</MudText>
+                    <MudProgressLinear Value="@systemPct" Color="Color.Primary" Height="10" Class="mt-1" />
+
+                    <MudText Typo="Typo.subtitle2" Class="mt-4">Manual Adjustments: @Math.Abs(ShrinkageCount)</MudText>
+                    <MudProgressLinear Value="@manualPct" Color="Color.Warning" Height="10" Class="mt-1" />
+
+                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-4 d-block">
+                        Blue represents system-recorded sales. Yellow represents reconciliation discrepancies.
+                    </MudText>
+                }
+                else
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-4">No sales activity recorded today yet.</MudText>
+                }
+            </MudPaper>
+
+            @* ── Inventory widgets moved from Inventory Dashboard ── *@
+            <MudGrid Class="mt-6">
+                <MudItem xs="12" md="6">
+                    <MudPaper Elevation="1" Class="pa-4 h-100">
+                        <MudStack Direction="Row" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
+                            <MudText Typo="Typo.h5">Recent Transfers</MudText>
+                            <MudButton Variant="Variant.Text" Color="Color.Primary" href="/inventory/transfers">View All</MudButton>
+                        </MudStack>
+
+                        @if (RecentBoxes.Any())
+                        {
+                            <MudList T="string">
+                                @foreach (var box in RecentBoxes.Take(5))
+                                {
+                                    <MudListItem Icon="@Icons.Material.Filled.LocalShipping" href="@($"/inventory/transfer/details/{box.Id}")">
+                                        <div class="d-flex justify-space-between w-100">
+                                            <MudText>@box.FromLocation.Name → @box.ToLocation.Name</MudText>
+                                            <MudText Typo="Typo.caption">@box.CreatedAt.ToString("MMM dd")</MudText>
+                                        </div>
+                                        <MudText Typo="Typo.body2" Color="Color.Secondary">@box.Items.Count items</MudText>
+                                    </MudListItem>
+                                }
+                            </MudList>
+                        }
+                        else
+                        {
+                            <MudAlert Severity="Severity.Info">No recent transfers.</MudAlert>
+                        }
+                    </MudPaper>
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudPaper Elevation="1" Class="pa-4 h-100">
+                        <MudStack Direction="Row" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
+                            <MudText Typo="Typo.h5">Low Stock Alerts</MudText>
+                            <MudButton Variant="Variant.Text" Color="Color.Primary" href="/inventory/stock">View Stock</MudButton>
+                        </MudStack>
+
+                        @if (LowStock.Any())
+                        {
+                            <MudList T="string">
+                                @foreach (var item in LowStock.Take(5))
+                                {
+                                    <MudListItem Icon="@Icons.Material.Filled.Warning" IconColor="Color.Warning">
+                                        <div class="d-flex justify-space-between w-100">
+                                            <MudText>@item.Product.Name</MudText>
+                                            <MudChip T="string" Size="Size.Small" Color="Color.Warning">@item.Quantity left</MudChip>
+                                        </div>
+                                    </MudListItem>
+                                }
+                            </MudList>
+                        }
+                        else
+                        {
+                            <MudAlert Severity="Severity.Success">All products have sufficient stock.</MudAlert>
+                        }
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
+        </MudContainer>
+    </Authorized>
+
+    <NotAuthorized>
+        <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-16 text-center">
+            <MudText Typo="Typo.h2" GutterBottom="true" Style="font-family: var(--title-font);">Puppet Festival Merchandise</MudText>
+            <MudText Typo="Typo.h5" Color="Color.Secondary" Class="mb-8">
+                Welcome to the Chicago Puppet Festival inventory management system.
+            </MudText>
+
+            <MudStack Row="true" Justify="Justify.Center" Spacing="4">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" href="Account/Login">
+                    Sign in
+                </MudButton>
+                <MudButton Variant="Variant.Outlined" Color="Color.Secondary" Size="Size.Large" href="Account/Register">
+                    Register
+                </MudButton>
+            </MudStack>
+        </MudContainer>
+    </NotAuthorized>
+</AuthorizeView>
 
 @code {
     private string UserName = "User";
@@ -82,20 +202,24 @@
     private int SystemSoldUnits;
     private int ShrinkageCount;
     private int TotalUnitsSold => SystemSoldUnits + Math.Abs(ShrinkageCount);
+    private List<StockTransferBox> RecentBoxes = new();
+    private List<ProductLocation> LowStock = new();
 
     protected override async Task OnInitializedAsync()
     {
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
 
-        if (user.Identity?.IsAuthenticated == true)
+        if (user.Identity?.IsAuthenticated != true)
         {
-            UserName = user.Identity.Name ?? "User";
-            foreach (var role in AppRoles.AllRoles)
-            {
-                if (user.IsInRole(role))
-                    UserRoles.Add(role);
-            }
+            return;
+        }
+
+        UserName = user.Identity.Name ?? "User";
+        foreach (var role in AppRoles.AllRoles)
+        {
+            if (user.IsInRole(role))
+                UserRoles.Add(role);
         }
 
         using var db = await DbFactory.CreateDbContextAsync();
@@ -116,5 +240,20 @@
         ShrinkageCount = salesToday
             .Where(s => s.IsManualAdjustment)
             .Sum(s => s.QuantitySold);
+
+        RecentBoxes = await db.StockTransferBoxes
+            .Include(b => b.FromLocation)
+            .Include(b => b.ToLocation)
+            .Include(b => b.Items)
+            .OrderByDescending(b => b.CreatedAt)
+            .Take(5)
+            .ToListAsync();
+
+        LowStock = await db.ProductLocations
+            .Include(pl => pl.Product)
+            .Where(pl => pl.Quantity < InventoryAlerts.LowStockThreshold)
+            .OrderBy(pl => pl.Quantity)
+            .Take(5)
+            .ToListAsync();
     }
 }

@@ -11,13 +11,24 @@
 
 <PageTitle>Transfer Boxes</PageTitle>
 
-<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
-    <MudStack Direction="Row" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
-        <MudText Typo="Typo.h4">Transfer Boxes</MudText>
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
+    <MudStack Direction="Row" Justify="Justify.SpaceBetween" Class="mb-4">
+        <MudText Class="my-2">
+            <h1>Outgoing & Incoming Boxes</h1>
+         </MudText>
+
+         <MudText Color="Color.Secondary" Class="mb-5">
+                View and accept boxes to be picked up or delivered here.
+            <p class="body-1"></p>
+            </MudText>
+
+
         <MudButton Color="Color.Primary" Variant="Variant.Filled"
                    href="/inventory/transfer/create"
-                   StartIcon="@Icons.Material.Filled.Add">
-            New Transfer
+                   StartIcon="@Icons.Material.Filled.Add"
+                   Size="Size.Large"
+                   Class="mb-5">
+            Pack a box
         </MudButton>
     </MudStack>
 

@@ -9,97 +9,17 @@
 @rendermode InteractiveServer
 
 <style>
-    .inventory-header {
-        font-family: serif;
-        font-weight: bold;
-    }
-
-    .location-summary-chip {
-        background-color: rgba(93, 30, 33, 0.08);
-        color: #5D1E21;
-        border-radius: 20px;
-        padding: 2px 10px;
-        font-size: 0.75rem;
-        font-weight: 600;
-        letter-spacing: 0.03em;
-    }
-
-    .stock-card {
-        border: 1px solid #eeeeee;
-        border-radius: 10px;
-        transition: box-shadow 0.15s ease;
-    }
-
-    .stock-card:hover {
-        box-shadow: 0 2px 12px rgba(93, 30, 33, 0.08) !important;
-    }
-
-    .stock-avatar {
-        height: 48px;
-        width: 48px;
-        background-color: #f5f5f5;
-        border-radius: 6px;
-        flex-shrink: 0;
-    }
-
-    .qty-chip-low {
-        border-color: #F44336 !important;
-        color: #F44336 !important;
-    }
-
-    .qty-chip-ok {
-        border-color: #9e9e9e !important;
-        color: #424242 !important;
-    }
-
-    .location-toolbar {
-        padding: 12px 16px;
-        border-bottom: 1px solid #f0f0f0;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        flex-wrap: wrap;
-        gap: 8px;
-    }
-
-    .location-title {
-        font-weight: 600;
-        font-size: 0.95rem;
-    }
-
-    .location-meta {
-        font-size: 0.78rem;
-        color: #757575;
-        margin-top: 1px;
-    }
-
-    .edit-qty-field {
-        width: 80px;
-    }
+    .inventory-header { font-family: serif; font-weight: bold; }
+    .stock-card { border: 1px solid #eeeeee; border-radius: 10px; transition: box-shadow 0.15s ease; }
+    .stock-card:hover { box-shadow: 0 2px 12px rgba(93, 30, 33, 0.08) !important; }
+    .stock-avatar { height: 48px; width: 48px; background-color: #f5f5f5; border-radius: 6px; flex-shrink: 0; }
+    .qty-chip-low { border-color: #F44336 !important; color: #F44336 !important; }
+    .qty-chip-ok { border-color: #9e9e9e !important; color: #424242 !important; }
+    .edit-qty-field { width: 80px; }
+    .border-bottom { border-bottom: 1px solid #e0e0e0; }
 </style>
 
-<MudStack Spacing="4" Class="pa-4">
-
-    @* ── Page Header ── *@
-    <div class="d-flex align-center justify-space-between flex-wrap gap-2">
-        <MudText Typo="Typo.h4" Class="inventory-header">Inventory</MudText>
-        <MudSwitch @bind-Value="_editMode"
-                   Color="Color.Primary"
-                   Label="Edit Mode"
-                   LabelPosition="LabelPosition.Start" />
-    </div>
-
-    @* ── Location Filter ── *@
-    <MudSelect T="Location"
-               Label="Select a location"
-               Variant="Variant.Outlined"
-               @bind-Value="SelectedLocation"
-               AnchorOrigin="Origin.BottomCenter">
-        @foreach (var loc in AllLocations)
-        {
-            <MudSelectItem Value="@loc">@loc.Name</MudSelectItem>
-        }
-    </MudSelect>
+<MudContainer MaxWidth="MaxWidth.Medium">
 
     @* ── Content Area ── *@
     @if (SelectedLocation == null)
@@ -110,120 +30,203 @@
     }
     else
     {
-        var items = StockData
-            .Where(x => x.LocationId == SelectedLocation.Id)
-            .OrderBy(x => x.Product?.Name)
-            .ToList();
+        var grouped = GetGroupedStock(SelectedLocation.Id);
+        var totalUnits = grouped.Sum(g => g.Variants.Sum(v => v.Quantity));
+        var lowCount = grouped.Sum(g => g.Variants.Count(v => InventoryAlerts.IsLowStock(v.Quantity)));
 
-        @* ── Location Summary Bar ── *@
+        @* ── Summary Bar ── *@
         <div class="d-flex align-center gap-3 flex-wrap">
             <MudText Typo="Typo.body2" Style="color:#757575;">
-                <b style="color:#212121;">@items.Count</b> SKUs &nbsp;·&nbsp;
-                <b style="color:#212121;">@items.Sum(x => x.Quantity)</b> total units
+                <b style="color:#212121;">@grouped.Count</b> products &nbsp;·&nbsp;
+                <b style="color:#212121;">@totalUnits</b> total units
             </MudText>
-            @{
-                var lowCount = items.Count(x => x.Quantity < 10);
-            }
-            @if (lowCount > 0)
-            {
-                <MudChip T="string" Size="Size.Small" Color="Color.Error" Variant="Variant.Outlined">
-                    @lowCount low stock
-                </MudChip>
-            }
+            <MudSwitch @bind-Value="_editMode"
+                    Color="Color.Primary"
+                    Label="Edit Mode"
+                    LabelPosition="LabelPosition.Start" />
         </div>
 
-        @if (!items.Any())
+        @* ── Location Filter ── *@
+        <MudSelect T="Location"
+                Label="Select a location"
+                Variant="Variant.Outlined"
+                @bind-Value="SelectedLocation"
+                AnchorOrigin="Origin.BottomCenter"
+                TransformOrigin="Origin.TopCenter">
+            @foreach (var loc in AllLocations)
+            {
+                <MudSelectItem Value="@loc">@loc.Name</MudSelectItem>
+            }
+        </MudSelect>
+
+        @* ── Content Area ── *@
+        @if (SelectedLocation == null)
         {
-            <MudPaper Class="pa-8 d-flex flex-column align-center justify-center"
-                      Elevation="0"
-                      Style="border: 1px dashed #ddd; border-radius: 10px;">
-                <MudIcon Icon="@Icons.Material.Outlined.Inventory2"
-                         Style="font-size:2.5rem; color:#bdbdbd; margin-bottom:8px;" />
-                <MudText Typo="Typo.h6" Style="color:#616161;">No Inventory</MudText>
-                <MudText Typo="Typo.body2" Color="Color.Secondary">
-                    No inventory exists at this location yet.
-                </MudText>
-            </MudPaper>
+            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+                Select a location to view inventory.
+            </MudAlert>
         }
         else
         {
-            <MudExpansionPanels MultiExpansion="true" Elevation="0">
-                @foreach (var pl in items)
+            var grouped = GetGroupedStock(SelectedLocation.Id);
+            var totalUnits = grouped.Sum(g => g.Variants.Sum(v => v.Quantity));
+            var lowCount = grouped.Sum(g => g.Variants.Count(v => v.Quantity < 10));
+
+            @* ── Summary Bar ── *@
+            <div class="d-flex align-center gap-3 flex-wrap">
+                <MudText Typo="Typo.body2" Style="color:#757575;">
+                    <b style="color:#212121;">@grouped.Count</b> products &nbsp;·&nbsp;
+                    <b style="color:#212121;">@totalUnits</b> total units
+                </MudText>
+                @if (lowCount > 0)
                 {
-                    <MudExpansionPanel Class="stock-card mb-2" Elevation="0">
-                        <TitleContent>
-                            <div class="d-flex align-center gap-3 w-100 pr-2">
+                    <MudChip T="string" Size="Size.Small" Color="Color.Error" Variant="Variant.Outlined">
+                        @lowCount low stock
+                    </MudChip>
+                }
+            </div>
 
-                                @* Product image placeholder *@
-                                <MudAvatar Square="true" Class="stock-avatar">
-                                    <MudIcon Icon="@Icons.Material.Filled.Image"
-                                             Style="color:#bdbdbd;" />
-                                </MudAvatar>
+            @if (!grouped.Any())
+            {
+                <MudPaper Class="pa-8 d-flex flex-column align-center justify-center"
+                        Elevation="0"
+                        Style="border: 1px dashed #ddd; border-radius: 10px;">
+                    <MudIcon Icon="@Icons.Material.Outlined.Inventory2"
+                            Style="font-size:2.5rem; color:#bdbdbd; margin-bottom:8px;" />
+                    <MudText Typo="Typo.h6" Style="color:#616161;">No Inventory</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        No products exist yet.
+                    </MudText>
+                </MudPaper>
+            }
+            else
+            {
+                <MudExpansionPanels MultiExpansion="true" Elevation="0">
+                    @foreach (var group in grouped)
+                    {
+                        <MudExpansionPanel Class="stock-card mb-2" Elevation="0">
+                            <TitleContent>
+                                <div class="d-flex align-center gap-3 w-100 pr-2">
+                                    @* Parent image *@
+                                    <MudAvatar Square="true" Class="stock-avatar">
+                                        @if (!string.IsNullOrEmpty(group.ImageFileName))
+                                        {
+                                            <MudImage Src="@($"/images/products/{group.ImageFileName}")" />
+                                        }
+                                        else
+                                        {
+                                            <MudIcon Icon="@Icons.Material.Filled.Image" Style="color:#bdbdbd;" />
+                                        }
+                                    </MudAvatar>
 
-                                @* Product info *@
-                                <div class="flex-grow-1" style="min-width:0;">
-                                    <MudText Typo="Typo.body1"
-                                             Style="font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                                        @pl.Product?.Name
-                                    </MudText>
-                                    <MudText Typo="Typo.caption" Style="color:#757575;">
-                                        @pl.Product?.Size / @pl.Product?.Color
-                                    </MudText>
+                                    @* Parent name and total *@
+                                    <div class="flex-grow-1" style="min-width:0;">
+                                        <MudText Typo="Typo.body1"
+                                                Style="font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                                            @group.ParentName
+                                        </MudText>
+                                        <MudText Typo="Typo.caption" Style="color:#757575;">
+                                            @group.Variants.Count variant(s) · @group.Variants.Sum(v => v.Quantity) total
+                                        </MudText>
+                                    </div>
+
+                                    @* Low stock badge if any variant is low *@
+                                    @if (group.Variants.Any(v => v.Quantity < 10))
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Error" Variant="Variant.Outlined">
+                                            Low
+                                        </MudChip>
+                                    }
                                 </div>
+                            </TitleContent>
 
-                                @* Quantity: edit mode vs read mode *@
-                                @if (_editMode)
-                                {
-                                    <MudNumericField T="int"
-                                                     Value="@pl.Quantity"
-                                                     ValueChanged="@(val => OnQuantityChanged(pl, val))"
-                                                     Variant="Variant.Outlined"
-                                                     Margin="Margin.Dense"
-                                                     Class="edit-qty-field"
-                                                     HideSpinButtons="true" />
-                                }
-                                else
-                                {
-                                    <MudChip T="int"
-                                             Variant="Variant.Outlined"
-                                             Size="Size.Small"
-                                             Class="@(pl.Quantity < 10 ? "qty-chip-low" : "qty-chip-ok")">
-                                        @pl.Quantity
-                                    </MudChip>
-                                }
+                            <ChildContent>
+                                <MudDivider />
+                                @* Column headers *@
+                                <div class="pa-2 d-flex justify-space-between px-4" style="background:#fafafa;">
+                                    <MudText Typo="Typo.caption"><b>Variant</b></MudText>
+                                    <MudText Typo="Typo.caption"><b>Quantity</b></MudText>
+                                </div>
+                                <MudDivider />
 
-                                <MudIconButton Icon="@Icons.Material.Filled.MoreHoriz"
-                                               Size="Size.Small"
-                                               Style="color:#9e9e9e;" />
+                                @* Low stock badge if any variant is low *@
+                                @if (group.Variants.Any(v => InventoryAlerts.IsLowStock(v.Quantity)))
+                                {
+                                    <div class="d-flex align-center justify-space-between pa-3 border-bottom">
+                                        <MudText Style="width: 90%;">
+                                            <p class="body-2">@variant.VariantName</p>
+                                        </MudText>
+
+                                        @if (_editMode)
+                                        {
+                                            <MudNumericField T="int"
+                                                            Value="@variant.Quantity"
+                                                            ValueChanged="@(val => OnQuantityChanged(variant.StockRecord, val))"
+                                                            Variant="Variant.Outlined"
+                                                            Margin="Margin.Dense"
+                                                            Class="edit-qty-field"
+                                                            HideSpinButtons="true" 
+                                                            Style="max-width: 100px;" />
+                                        }
+                                        else
+                                        {
+                                            <MudChip T="int"
+                                                    Variant="Variant.Outlined"
+                                                    Size="Size.Small"
+                                                    Class="@(variant.Quantity < 10 ? "qty-chip-low" : "qty-chip-ok")">
+                                                @variant.Quantity
+                                            </MudChip>
+                                        }
+                                    </div>
+                                }
                             </div>
                         </TitleContent>
 
-                        @* Expansion detail panel *@
                         <ChildContent>
-                            <div class="pa-3 pt-0">
-                                <MudDivider Class="mb-3" />
-                                <MudStack Row="true" Spacing="4" Class="flex-wrap">
-                                    <div>
-                                        <MudText Typo="Typo.caption" Style="color:#9e9e9e; text-transform:uppercase; letter-spacing:.05em;">Size</MudText>
-                                        <MudText Typo="Typo.body2">@(pl.Product?.Size.ToString() ?? "—")</MudText>
-                                    </div>
-                                    <div>
-                                        <MudText Typo="Typo.caption" Style="color:#9e9e9e; text-transform:uppercase; letter-spacing:.05em;">Color</MudText>
-                                        <MudText Typo="Typo.body2">@(pl.Product?.Color.ToString() ?? "—")</MudText>
-                                    </div>
-                                    <div>
-                                        <MudText Typo="Typo.caption" Style="color:#9e9e9e; text-transform:uppercase; letter-spacing:.05em;">Quantity</MudText>
-                                        <MudText Typo="Typo.body2" Style="font-weight:600;">@pl.Quantity</MudText>
-                                    </div>
-                                </MudStack>
+                            <MudDivider />
+                            @* Column headers *@
+                            <div class="pa-2 d-flex justify-space-between px-4" style="background:#fafafa;">
+                                <MudText Typo="Typo.caption"><b>Variant</b></MudText>
+                                <MudText Typo="Typo.caption"><b>Quantity</b></MudText>
                             </div>
+                            <MudDivider />
+
+                            @foreach (var variant in group.Variants)
+                            {
+                                <div class="d-flex align-center justify-space-between pa-3 border-bottom">
+                                    <MudText Typo="Typo.body2">@variant.VariantName</MudText>
+
+                                    @if (_editMode)
+                                    {
+                                        <MudNumericField T="int"
+                                                         Value="@variant.Quantity"
+                                                         ValueChanged="@(val => OnQuantityChanged(variant.StockRecord, val))"
+                                                         Variant="Variant.Outlined"
+                                                         Margin="Margin.Dense"
+                                                         Class="edit-qty-field"
+                                                         HideSpinButtons="true" />
+                                    }
+                                    else
+                                    {
+                                        <MudChip T="int"
+                                                 Variant="Variant.Outlined"
+                                                 Size="Size.Small"
+                                                 Class="@(InventoryAlerts.IsLowStock(variant.Quantity) ? "qty-chip-low" : "qty-chip-ok")">
+                                            @variant.Quantity
+                                        </MudChip>
+                                    }
+                                </div>
+                            }
                         </ChildContent>
                     </MudExpansionPanel>
                 }
             </MudExpansionPanels>
         }
-    }
-</MudStack>
+    </MudStack>
+
+</MudContainer>
+
+
 
 @code {
     private List<ProductLocation> StockData = new();
@@ -231,23 +234,86 @@
     private Location? SelectedLocation;
     private bool _editMode = false;
 
-    protected override async Task OnInitializedAsync()
+    // ── DTOs ──
+    public class StockGroupDTO
     {
-        using var db = await DbFactory.CreateDbContextAsync();
+        public string ParentName { get; set; } = "";
+        public string? ImageFileName { get; set; }
+        public List<StockVariantDTO> Variants { get; set; } = new();
+    }
 
-        AllLocations = await db.Locations
-            .OrderBy(l => l.Name)
-            .ToListAsync();
+    public class StockVariantDTO
+    {
+        public string VariantName { get; set; } = "";
+        public int Quantity { get; set; }
+        public ProductLocation StockRecord { get; set; } = null!;
+    }
 
-        StockData = await db.ProductLocations
-            .Include(pl => pl.Product)
-            .Include(pl => pl.Location)
-            .Where(pl => pl.Quantity > 0)
-            .OrderBy(pl => pl.Location.Name)
-            .ThenBy(pl => pl.Product.Name)
-            .ToListAsync();
+    protected override async Task OnInitializedAsync()
+{
+    using var db = await DbFactory.CreateDbContextAsync();
 
-        SelectedLocation = AllLocations.FirstOrDefault();
+    AllLocations = await db.Locations
+        .Where(l => l.IsActive && l.Type != LocationType.Van)
+        .OrderBy(l => l.Name)
+        .ToListAsync();
+
+    StockData = await db.ProductLocations
+        .Include(pl => pl.Product)
+            .ThenInclude(p => p.Image)
+        .Include(pl => pl.Product)
+            .ThenInclude(p => p.ParentProduct!)
+                .ThenInclude(pp => pp.Image)
+        .Include(pl => pl.Location)
+        .Where(pl => pl.Quantity > 0)
+        .OrderBy(pl => pl.Location.Name)
+        .ThenBy(pl => pl.Product.Name)
+        .ToListAsync();
+
+    SelectedLocation = AllLocations.FirstOrDefault(l => l.Type == LocationType.Store) 
+                   ?? AllLocations.FirstOrDefault();
+}
+
+    private List<StockGroupDTO> GetGroupedStock(int locationId)
+    {
+        return StockData
+            .Where(x => x.LocationId == locationId)
+            // Only show variant products (those with a parent) OR standalone products (no parent, no children)
+            .Where(x => x.Product?.ParentProductId != null || 
+                        !StockData.Any(s => s.Product?.ParentProductId == x.ProductId))
+            .GroupBy(x => x.Product?.ParentProductId ?? x.ProductId)
+            .Select(g => {
+                var first = g.First().Product;
+                var isChild = first?.ParentProductId != null;
+                var imageFile = isChild
+                    ? (first?.ParentProduct?.Image?.FileName ?? first?.Image?.FileName)
+                    : first?.Image?.FileName;
+                var parentName = isChild
+                    ? (first?.ParentProduct?.Name ?? first?.Name ?? "Unknown")
+                    : (first?.Name ?? "Unknown");
+
+                return new StockGroupDTO
+                {
+                    ParentName = parentName,
+                    ImageFileName = imageFile,
+                    Variants = g.Select(v => new StockVariantDTO
+                    {
+                        VariantName = GenerateVariantName(v.Product!),
+                        Quantity = v.Quantity,
+                        StockRecord = v
+                    }).OrderBy(v => v.VariantName).ToList()
+                };
+            })
+            .OrderBy(g => g.ParentName)
+            .ToList();
+    }
+
+    private static string GenerateVariantName(Product p)
+    {
+        var parts = new List<string>();
+        if (p.Size.HasValue && p.Size != ProductSize.NA) parts.Add(p.Size.ToString()!);
+        if (p.Color.HasValue && p.Color != ProductColor.NA) parts.Add(p.Color.ToString()!);
+        return parts.Any() ? string.Join(" / ", parts) : "Standard";
     }
 
     private async Task OnQuantityChanged(ProductLocation item, int newVal)
@@ -273,12 +339,27 @@
             item.Quantity = newVal;
 
             using var db = await DbFactory.CreateDbContextAsync();
-            var dbItem = await db.ProductLocations.FindAsync(item.Id);
+            var dbItem = await db.ProductLocations
+                .FirstOrDefaultAsync(pl => pl.ProductId == item.ProductId
+                                        && pl.LocationId == item.LocationId);
+
             if (dbItem != null)
             {
                 dbItem.Quantity = newVal;
-                await db.SaveChangesAsync();
+                dbItem.LastUpdated = DateTime.UtcNow;
             }
+            else
+            {
+                db.ProductLocations.Add(new ProductLocation
+                {
+                    ProductId = item.ProductId,
+                    LocationId = item.LocationId,
+                    Quantity = newVal,
+                    LastUpdated = DateTime.UtcNow
+                });
+            }
+
+            await db.SaveChangesAsync();
         }
     }
 }

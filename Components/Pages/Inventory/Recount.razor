@@ -5,41 +5,58 @@
 @rendermode InteractiveServer
 @inject IDbContextFactory<ApplicationDbContext> DbFactory
 @inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IDialogService DialogService
 
-<MudContainer MaxWidth="MaxWidth.Small" Class="mt-10">
-    @if (SelectedLocationId == 0)
+<MudContainer MaxWidth="MaxWidth.Medium">
+    @if (SelectedLocationId == null)
     {
         @* --- STEP 1: LOCATION SELECTION --- *@
         <div class="text-center">
-            <MudText Typo="Typo.h3" Style="font-family: var(--title-font); font-weight: bold;">Inventory Recount</MudText>
-            <MudText Typo="Typo.body1" Class="mt-4 mb-10" Color="Color.Secondary">
-                Select your location and manually sync inventory by entering actual counted quantities to match what's in the system.
+
+            <MudText Class="my-5">
+                <h1>Inventory Recount</h1>
             </MudText>
 
-            <MudText Align="Align.Left" Typo="Typo.subtitle1" Class="mb-2"><b>Select a location to continue:</b></MudText>
-            <MudSelect T="int" Value="SelectedLocationId" ValueChanged="OnLocationChanged" 
-                       Variant="Variant.Outlined" Placeholder="Select a location" AnchorOrigin="Origin.BottomCenter">
-                @foreach (var loc in Locations)
-                {
-                    <MudSelectItem T="int" Value="@loc.Id">@loc.Name</MudSelectItem>
-                }
-            </MudSelect>
+            <MudText Class="mb-5" Color="Color.Secondary">
+                <p class="body-1">Select your location and manually sync inventory by entering actual counted quantities to match what's in the system.</p>
+            </MudText>
 
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" 
-                       Size="Size.Large" Class="mt-8 py-3" 
-                       Disabled="@(SelectedLocationId == 0)" EndIcon="@Icons.Material.Filled.ArrowForward">
-                CONTINUE
-            </MudButton>
+            <MudText Class="mb-1">
+                <p class="body-1"><strong>Select a location to continue:</strong></p>
+            </MudText>
+            
+            <MudSelect T="int?" @bind-Value="DropdownValue"
+           Variant="Variant.Outlined" 
+           AnchorOrigin="Origin.BottomCenter"
+           TransformOrigin="Origin.TopCenter">
+    <MudSelectItem T="int?" Value="null">Select a location...</MudSelectItem>
+    @foreach (var loc in Locations)
+    {
+        <MudSelectItem T="int?" Value="@((int?)loc.Id)">@loc.Name</MudSelectItem>
+    }
+</MudSelect>
+
+           <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" 
+           Size="Size.Large"
+           Disabled="@(DropdownValue == null)"
+           OnClick="ProceedToRecount"
+           EndIcon="@Icons.Material.Filled.ArrowForward"
+            Class="my-5">
+    CONTINUE
+</MudButton>
         </div>
     }
     else if (!ShowSummary)
     {
         @* --- STEP 2: PHYSICAL COUNT LIST --- *@
         <MudLink OnClick="ResetLocation" Color="Color.Primary" Underline="Underline.None" Class="d-flex align-center mb-4">
-            <MudIcon Icon="@Icons.Material.Filled.ArrowBack" Size="Size.Small" Class="mr-1"/> BACK
+            <MudIcon Icon="@Icons.Material.Filled.ArrowBack" Size="Size.Medium" Class="mr-1"/> BACK
         </MudLink>
 
-        <MudText Typo="Typo.h4" Style="font-family: var(--title-font); font-weight: bold;">Inventory Recount</MudText>
+        <MudText Class="my-5">
+            <h1>Inventory Recount</h1>
+        </MudText>
         <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
             Manually sync inventory by entering actual counted quantities to match what's in the system.
         </MudText>
@@ -50,12 +67,12 @@
 
         <div class="d-flex gap-2 mb-6">
             <MudTextField @bind-Value="SearchTerm" Placeholder="Search for an item" 
-                          Variant="Variant.Filled" Adornment="Adornment.End" 
+                          Variant="Variant.Outlined" Adornment="Adornment.End" 
                           AdornmentIcon="@Icons.Material.Filled.Search" Margin="Margin.Dense" />
             <MudMenu EndIcon="@Icons.Material.Filled.FilterList"
          Label="Filter"
          Variant="Variant.Outlined"
-         Size="Size.Small"
+         Size="Size.Large"
          Style="white-space:nowrap"
          AnchorOrigin="Origin.BottomCenter"
          TransformOrigin="Origin.TopCenter">
@@ -119,12 +136,15 @@
     {
         @* --- STEP 3: RECOUNT SUMMARY --- *@
         <MudLink OnClick="() => ShowSummary = false" Color="Color.Primary" Underline="Underline.None" Class="d-flex align-center mb-4">
-            <MudIcon Icon="@Icons.Material.Filled.ArrowBack" Size="Size.Small" Class="mr-1"/> BACK
+            <MudIcon Icon="@Icons.Material.Filled.ArrowBack" Size="Size.Medium" Class="mr-1"/> BACK
         </MudLink>
 
-        <MudText Typo="Typo.h4" Style="font-family: var(--title-font); font-weight: bold;">
-            <MudIcon Icon="@Icons.Material.Filled.Assignment" Class="mr-2"/> Recount Summary
-        </MudText>
+        <div style="display: flex; flex-direction: row; align-items: center; gap: 4px;">
+            <MudIcon Icon="@Icons.Material.Filled.Assignment" Class="mr-2"/>
+            <MudText Class="my-5">
+                <h1>Summary Recount</h1>
+            </MudText>
+        </div>
 
         <MudChip T="string" Icon="@Icons.Material.Filled.TheaterComedy" Color="Color.Primary" Class="mt-4 mb-6">
             @CurrentLocationName
@@ -144,13 +164,19 @@
                     <MudChip T="string" Size="Size.Small">Total: @parent.Variants.Sum(v => v.ActualQty)</MudChip>
                 </div>
                 <MudDivider Class="my-2"/>
-                @foreach(var v in parent.Variants)
-                {
-                    <div class="d-flex justify-space-between">
-                        <MudText Typo="Typo.caption">@v.VariantName</MudText>
-                        <MudText Typo="Typo.caption"><b>@v.ActualQty</b></MudText>
-                    </div>
-                }
+              @foreach(var v in parent.Variants)
+{
+    var delta = v.ActualQty - v.SystemQty;
+    var deltaText = delta > 0 ? $"+{delta}" : delta.ToString();
+    var deltaColor = delta > 0 ? "color: #4CAF50; font-weight: bold;" : delta < 0 ? "color: #F44336; font-weight: bold;" : "color: #9e9e9e;";
+    <div class="d-flex justify-space-between align-center">
+        <MudText Typo="Typo.caption">@v.VariantName</MudText>
+        <div class="d-flex gap-3 align-center">
+            <MudText Typo="Typo.caption" Style="color:#9e9e9e;">@v.ActualQty</MudText>
+            <MudText Typo="Typo.caption" Style="@deltaColor">@deltaText</MudText>
+        </div>
+    </div>
+}
             </MudPaper>
         }
 
@@ -159,13 +185,34 @@
             CONFIRM ADJUSTMENT
         </MudButton>
     }
+
+    <MudMessageBox @ref="confirmBox" Title="@($"Record inventory adjustment at {CurrentLocationName}?")" 
+               CancelText="Cancel">
+    <MessageContent>
+        This will update inventory to match your entered counts.
+    </MessageContent>
+    <YesButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary">Confirm</MudButton>
+    </YesButton>
+</MudMessageBox>
+
+<MudMessageBox @ref="successBox" Title="Inventory Adjusted" CancelText="">
+    <YesButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary">OK</MudButton>
+    </YesButton>
+</MudMessageBox>
+
 </MudContainer>
 
 @code {
-    private int SelectedLocationId;
+    private int? SelectedLocationId = null;
     private string SearchTerm = "";
     private bool ShowSummary = false;
     private string? categoryFilter = null;
+    private int? DropdownValue = null;
+
+    private MudMessageBox? confirmBox;
+    private MudMessageBox? successBox;
 
     private List<Location> Locations = new();
     private List<RecountParentDTO> MasterProducts = new();
@@ -177,18 +224,38 @@
                 p.ParentName.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase))
     .Where(p => categoryFilter == null || p.CategoryName == categoryFilter);
     protected override async Task OnInitializedAsync()
-    {
-        using var db = await DbFactory.CreateDbContextAsync();
-        Locations = await db.Locations.Where(l => l.IsActive).OrderBy(l => l.Name).ToListAsync();
-    }
+{
+    using var db = await DbFactory.CreateDbContextAsync();
 
-    private async Task OnLocationChanged(int id)
-    {
-        SelectedLocationId = id;
-        await LoadProducts();
-    }
+    var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+    var user = authState.User;
+    var isFrontOfHouse = user.IsInRole("SalesStaff") && !user.IsInRole("Admin") && !user.IsInRole("InventoryManager");
 
-    private void ResetLocation() { SelectedLocationId = 0; ShowSummary = false; }
+    Locations = await db.Locations
+        .Where(l => l.IsActive && l.Type != LocationType.Van)
+        .OrderBy(l => l.Name)
+        .ToListAsync();
+
+   if (isFrontOfHouse)
+{
+    Locations = Locations.Where(l => l.Type == LocationType.Event).ToList();
+    DropdownValue = Locations.FirstOrDefault()?.Id;
+}
+else
+{
+    var hub = Locations.FirstOrDefault(l => l.Type == LocationType.Store);
+    DropdownValue = hub?.Id ?? Locations.FirstOrDefault()?.Id;
+}
+}
+
+    private async Task ProceedToRecount()
+{
+    if (DropdownValue == null) return;
+    SelectedLocationId = DropdownValue;
+    await LoadProducts();
+}
+
+    private void ResetLocation() { SelectedLocationId = null; ShowSummary = false; }
 
     private async Task LoadProducts()
     {
@@ -228,24 +295,29 @@
         return parts.Any() ? string.Join(" / ", parts) : "Standard";
     }
 
-    private async Task SaveRecount()
+   private async Task SaveRecount()
+{
+    bool? confirmed = await confirmBox!.ShowAsync();
+    if (confirmed != true) return;
+
+    using var db = await DbFactory.CreateDbContextAsync();
+    foreach (var parent in MasterProducts)
     {
-        using var db = await DbFactory.CreateDbContextAsync();
-        foreach (var parent in MasterProducts)
+        foreach (var v in parent.Variants)
         {
-            foreach (var v in parent.Variants)
+            var stock = await db.ProductLocations.FirstOrDefaultAsync(pl => pl.ProductId == v.ProductId && pl.LocationId == SelectedLocationId);
+            if (stock != null && stock.Quantity != v.ActualQty)
             {
-                var stock = await db.ProductLocations.FirstOrDefaultAsync(pl => pl.ProductId == v.ProductId && pl.LocationId == SelectedLocationId);
-                if (stock != null && stock.Quantity != v.ActualQty)
-                {
-                    stock.Quantity = v.ActualQty;
-                    stock.LastUpdated = DateTime.UtcNow;
-                }
+                stock.Quantity = v.ActualQty;
+                stock.LastUpdated = DateTime.UtcNow;
             }
         }
-        await db.SaveChangesAsync();
-        Navigation.NavigateTo("/inventory/stock");
     }
+    await db.SaveChangesAsync();
+
+    await successBox!.ShowAsync();
+    Navigation.NavigateTo("/inventory/stock");
+}
 
     public class RecountParentDTO {
         public string ParentName { get; set; } = "";

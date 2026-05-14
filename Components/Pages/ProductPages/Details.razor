@@ -6,12 +6,18 @@
 @inject IDbContextFactory<ApplicationDbContext> DbFactory
 @inject NavigationManager NavigationManager
 
-<MudContainer MaxWidth="MaxWidth.Small" Class="mt-6 mb-10">
+<MudContainer MaxWidth="MaxWidth.Medium" Class="pa-4">
     @* --- HEADER NAVIGATION --- *@
     <div class="d-flex align-center justify-space-between mb-2">
-        <MudLink href="/products" Color="Color.Primary" Underline="Underline.None" Class="d-flex align-center">
-            <MudIcon Icon="@Icons.Material.Filled.ArrowBack" Size="Size.Small" Class="mr-1"/> BACK
-        </MudLink>
+
+        <MudButton StartIcon="@Icons.Material.Filled.ArrowBack"
+               Variant="Variant.Text"
+               Color="Color.Default"
+               Size="Size.Large"
+               Class="mb-2 text-uppercase"
+               Href="/products">
+        Back
+    </MudButton>
         
         @if (Product != null)
         {
@@ -31,8 +37,8 @@
     else
     {
         @* --- PRODUCT TITLE --- *@
-        <MudText Typo="Typo.h4" Style="font-family: var(--title-font); font-weight: bold; line-height: 1.1;" Class="mb-6">
-            @Product.Name
+        <MudText Class="my-3">
+            <h3>@Product.Name</h3>
         </MudText>
 
         @* --- PRODUCT IMAGE --- *@
@@ -51,13 +57,20 @@
         </div>
 
         @* --- BASE INFO --- *@
-        <MudText Typo="Typo.h5" Class="mb-1">@Product.Category?.Name</MudText>
-        <MudText Typo="Typo.h6" Class="mb-8"><b>@Product.Price.ToString("C")</b></MudText>
+        <MudText Class="mb-1">
+            <p class="body-1">@Product.Category?.Name</p>
+        </MudText>
+        <MudText Class="mb-1">
+            <p class="body-1">@Product.Price.ToString("C")</p>
+        </MudText>
 
         @* --- VARIATIONS SECTION --- *@
+        
         <div class="d-flex align-center justify-space-between mb-4">
-            <MudText Typo="Typo.h5" Style="font-weight: bold;">Sizes</MudText>
-            <MudButton StartIcon="@Icons.Material.Filled.Add" Size="Size.Small" 
+            <MudText Class="my-3">
+                <h3>Sizes</h3>
+            </MudText>
+            <MudButton StartIcon="@Icons.Material.Filled.Add" Size="Size.Medium" 
                        Variant="Variant.Text" Color="Color.Primary"
                        Href="@($"/products/create?parentId={Product.Id}")">
                 Add Variant
@@ -85,8 +98,12 @@
 
         @if (!string.IsNullOrWhiteSpace(Product.Description))
         {
-            <MudText Typo="Typo.subtitle2" Color="Color.Secondary" Class="mb-1">Description</MudText>
-            <MudText Typo="Typo.body1" Class="mb-6">@Product.Description</MudText>
+            <MudText Class="mb-1">
+                <p class="subtitle-1"><strong>Description</strong></p>
+            </MudText>
+            <MudText>
+                <p class="body-1">@Product.Description</p>
+            </MudText>
         }
     }
 </MudContainer>

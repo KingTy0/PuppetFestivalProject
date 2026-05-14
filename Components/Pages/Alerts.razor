@@ -1,0 +1,173 @@
+@page "/alerts"
+@using Microsoft.EntityFrameworkCore
+@using PuppetFestAPP.Web.Data
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@rendermode InteractiveServer
+
+<PageTitle>Alerts</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-6">
+    <MudText Typo="Typo.h4">Alerts</MudText>
+    <MudText Typo="Typo.subtitle1" Color="Color.Secondary" Class="mb-4">
+        Inventory notifications for location-level low stock and overall product shortages.
+    </MudText>
+
+    <MudPaper Class="pa-4 mb-6" Elevation="1">
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            Low stock is defined as less than <b>@InventoryAlerts.LowStockThreshold</b> units. Critical stock is less than or equal to <b>@InventoryAlerts.CriticalStockThreshold</b> units.
+        </MudText>
+    </MudPaper>
+
+    <MudGrid GutterSize="3">
+        <MudItem xs="12" md="6">
+            <MudPaper Elevation="1" Class="pa-4 h-100">
+                <MudStack Direction="Row" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
+                    <MudText Typo="Typo.h5">Location Alerts</MudText>
+                    <MudChip T="string" Color="Color.Warning" Variant="Variant.Outlined" Size="Size.Small">
+                        @LowStockByLocation.Count low items
+                    </MudChip>
+                </MudStack>
+
+                @if (LowStockByLocation.Any())
+                {
+                    <MudTable Dense="true" Hover="true" Bordered="true" Items="LowStockByLocation">
+                        <HeaderContent>
+                            <MudTh>Product</MudTh>
+                            <MudTh>Location</MudTh>
+                            <MudTh>Quantity</MudTh>
+                            <MudTh>Status</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd>@GetDisplayName(@context.Product)</MudTd>
+                            <MudTd>@context.Location.Name</MudTd>
+                            <MudTd>
+                                <MudChip T="int" Color="@(InventoryAlerts.IsCriticalStock(@context.Quantity) ? Color.Error : Color.Warning)" Variant="Variant.Filled" Size="Size.Small">
+                                    @context.Quantity
+                                </MudChip>
+                            </MudTd>
+                            <MudTd>
+                                @if (InventoryAlerts.IsCriticalStock(@context.Quantity))
+                                {
+                                    <MudChip T="string" Color="Color.Error" Variant="Variant.Outlined" Size="Size.Small">Critical</MudChip>
+                                }
+                                else
+                                {
+                                    <MudChip T="string" Color="Color.Warning" Variant="Variant.Outlined" Size="Size.Small">Low</MudChip>
+                                }
+                            </MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                }
+                else
+                {
+                    <MudAlert Severity="Severity.Success">No low stock items detected at any location.</MudAlert>
+                }
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="6">
+            <MudPaper Elevation="1" Class="pa-4 h-100">
+                <MudStack Direction="Row" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
+                    <MudText Typo="Typo.h5">Overall Stock Alerts</MudText>
+                    <MudChip T="string" Color="Color.Info" Variant="Variant.Outlined" Size="Size.Small">
+                        @LowStockByProduct.Count products
+                    </MudChip>
+                </MudStack>
+
+                @if (LowStockByProduct.Any())
+                {
+                    <MudTable Dense="true" Hover="true" Bordered="true" Items="LowStockByProduct">
+                        <HeaderContent>
+                            <MudTh>Product</MudTh>
+                            <MudTh>Locations</MudTh>
+                            <MudTh>Total Qty</MudTh>
+                            <MudTh>Severity</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd>@context.DisplayName</MudTd>
+                            <MudTd>@context.LocationCount</MudTd>
+                            <MudTd>
+                                <MudChip T="int" Color="@(InventoryAlerts.IsCriticalStock(@context.TotalQuantity) ? Color.Error : Color.Warning)" Variant="Variant.Filled" Size="Size.Small">
+                                    @context.TotalQuantity
+                                </MudChip>
+                            </MudTd>
+                            <MudTd>
+                                @if (InventoryAlerts.IsCriticalStock(@context.TotalQuantity))
+                                {
+                                    <MudChip T="string" Color="Color.Error" Variant="Variant.Outlined" Size="Size.Small">Critical</MudChip>
+                                }
+                                else
+                                {
+                                    <MudChip T="string" Color="Color.Warning" Variant="Variant.Outlined" Size="Size.Small">Low</MudChip>
+                                }
+                            </MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                }
+                else
+                {
+                    <MudAlert Severity="Severity.Success">Overall inventory is above the low stock threshold.</MudAlert>
+                }
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+</MudContainer>
+
+@code {
+    private List<ProductLocation> LowStockByLocation = new();
+    private List<ProductLowStockAggregate> LowStockByProduct = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var db = await DbFactory.CreateDbContextAsync();
+
+        LowStockByLocation = await db.ProductLocations
+            .Include(pl => pl.Product)
+                .ThenInclude(p => p.ParentProduct)
+            .Include(pl => pl.Product)
+                .ThenInclude(p => p.Image)
+            .Include(pl => pl.Location)
+            .Where(pl => pl.Quantity < InventoryAlerts.LowStockThreshold)
+            .OrderBy(pl => pl.Quantity)
+            .ThenBy(pl => pl.Location.Name)
+            .ThenBy(pl => pl.Product.Name)
+            .ToListAsync();
+
+        var allStock = await db.ProductLocations
+            .Include(pl => pl.Product)
+                .ThenInclude(p => p.ParentProduct)
+            .Include(pl => pl.Product)
+                .ThenInclude(p => p.Image)
+            .ToListAsync();
+
+        LowStockByProduct = allStock
+            .GroupBy(pl => pl.Product.ParentProductId ?? pl.ProductId)
+            .Select(g => new ProductLowStockAggregate
+            {
+                DisplayName = GetDisplayName(g.First().Product),
+                TotalQuantity = g.Sum(pl => pl.Quantity),
+                LocationCount = g.Select(pl => pl.LocationId).Distinct().Count()
+            })
+            .Where(a => a.TotalQuantity < InventoryAlerts.LowStockThreshold)
+            .OrderBy(a => a.TotalQuantity)
+            .ToList();
+    }
+
+    private static string GetDisplayName(Product? product)
+    {
+        if (product == null)
+            return "Unknown";
+
+        if (product.ParentProductId != null)
+            return product.ParentProduct?.Name ?? product.Name;
+
+        return product.Name;
+    }
+
+    private sealed class ProductLowStockAggregate
+    {
+        public string DisplayName { get; set; } = string.Empty;
+        public int TotalQuantity { get; set; }
+        public int LocationCount { get; set; }
+    }
+}

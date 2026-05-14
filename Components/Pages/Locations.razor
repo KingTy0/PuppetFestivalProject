@@ -8,168 +8,217 @@
 
 <PageTitle>Locations</PageTitle>
 
-<MudText Typo="Typo.h3" Class="mb-2" Style="font-family: var(--title-font);">Locations</MudText>
-<MudText Typo="Typo.body1" Class="mb-6">Details for the main hub, theaters, and vans can be viewed and edited here.</MudText>
 
-<MudButton Color="Color.Primary"
-           Variant="Variant.Filled"
-           StartIcon="@Icons.Material.Filled.Add"
-           href="/Locations/create"
-           FullWidth="true"
-           Class="py-3 mb-6">
-    CREATE NEW LOCATION
-</MudButton>
+<MudContainer MaxWidth="MaxWidth.Medium">
 
-@if (AllLocations == null)
-{
-    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
-}
-else
-{
-    @* Main Hub Section — Store type only, always just the one hub *@
-    <MudExpansionPanels MultiExpansion="true" Class="mb-4">
-        <MudExpansionPanel Text="@($"Main Hub ({HubLocations.Count()})")" IsExpanded="true">
-            <MudList T="string">
-                @foreach (var loc in HubLocations)
-                {
-                    <MudListItem>
-                        <div class="d-flex align-center justify-space-between w-100">
-                            <div>
-                                <MudText Typo="Typo.subtitle1"><b>@loc.Name</b></MudText>
-                                <MudText Typo="Typo.body2" Color="Color.Secondary">@loc.Address</MudText>
-                            </div>
-                            <div class="d-flex">
-                                <MudIconButton Icon="@Icons.Material.Filled.Edit"
-                                               Variant="Variant.Filled"
-                                               Color="Color.Default"
-                                               Class="mr-2"
-                                               href="@($"/locations/edit/{loc.Id}")" />
-                                <MudIconButton Icon="@Icons.Material.Filled.Delete"
-                                               Variant="Variant.Filled"
-                                               Color="Color.Error"
-                                               Class="mr-2"
-                                               OnClick="@(() => DeleteLocation(loc.Id))" />
-                                <MudIconButton Icon="@Icons.Material.Filled.MenuBook"
-                                               Variant="Variant.Filled"
-                                               Color="Color.Default"
-                                               href="/inventory/stock" />
-                            </div>
-                        </div>
-                    </MudListItem>
-                    <MudDivider />
-                }
-            </MudList>
-        </MudExpansionPanel>
-    </MudExpansionPanels>
+    <MudText Class="my-3">
+        <h1>Locations</h1>
+    </MudText>
 
-    @* Theaters Section — Event type, all user-created locations go here *@
-    <MudExpansionPanels MultiExpansion="true" Class="mb-4">
-        <MudExpansionPanel Text="@($"Theaters ({TheaterLocations.Count()})")">
-            <MudList T="string">
-                @foreach (var loc in TheaterLocations)
-                {
-                    <MudListItem>
-                        <div class="d-flex align-center justify-space-between w-100">
-                            <div>
-                                <MudText Typo="Typo.subtitle1"><b>@loc.Name</b></MudText>
-                                <MudText Typo="Typo.body2" Color="Color.Secondary">@loc.Address</MudText>
-                            </div>
-                            <div class="d-flex">
-                                <MudIconButton Icon="@Icons.Material.Filled.Edit"
-                                               Variant="Variant.Filled"
-                                               Color="Color.Default"
-                                               Class="mr-2"
-                                               href="@($"/locations/edit/{loc.Id}")" />
-                                <MudIconButton Icon="@Icons.Material.Filled.Delete"
-                                               Variant="Variant.Filled"
-                                               Color="Color.Error"
-                                               Class="mr-2"
-                                               OnClick="@(() => DeleteLocation(loc.Id))" />
-                                <MudIconButton Icon="@Icons.Material.Filled.MenuBook"
-                                               Variant="Variant.Filled"
-                                               Color="Color.Default"
-                                               href="/inventory/stock" />
-                            </div>
-                        </div>
-                    </MudListItem>
-                    <MudDivider />
-                }
-            </MudList>
-        </MudExpansionPanel>
-    </MudExpansionPanels>
+    <MudText Class="mb-6">
+        <p class="body-1">Details for the main hub, theaters, and vans can be viewed and edited here.</p>
+    </MudText>
 
-    @* Warehouse Section *@
-<MudExpansionPanels MultiExpansion="true" Class="mb-4">
-    <MudExpansionPanel Text="@($"Warehouse ({WarehouseLocations.Count()})")">
-        <MudList T="string">
-            @foreach (var loc in WarehouseLocations)
-            {
-                <MudListItem>
-                    <div class="d-flex align-center justify-space-between w-100">
-                        <div>
-                            <MudText Typo="Typo.subtitle1"><b>@loc.Name</b></MudText>
-                            <MudText Typo="Typo.body2" Color="Color.Secondary">@loc.Address</MudText>
-                        </div>
-                        <div class="d-flex">
-                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
-                                           Variant="Variant.Filled"
-                                           Color="Color.Default"
-                                           Class="mr-2"
-                                           href="@($"/locations/edit/{loc.Id}")" />
-                            <MudIconButton Icon="@Icons.Material.Filled.Delete"
-                                           Variant="Variant.Filled"
-                                           Color="Color.Error"
-                                           Class="mr-2"
-                                           OnClick="@(() => DeleteLocation(loc.Id))" />
-                            <MudIconButton Icon="@Icons.Material.Filled.MenuBook"
-                                           Variant="Variant.Filled"
-                                           Color="Color.Default"
-                                           href="/inventory/stock" />
-                        </div>
-                    </div>
-                </MudListItem>
-                <MudDivider />
-            }
-        </MudList>
-    </MudExpansionPanel>
-</MudExpansionPanels>
+    <MudDivider Class="mb-2"></MudDivider>
 
-    @* Vans Section — Van type only *@
-    <MudExpansionPanels MultiExpansion="true" Class="mb-4">
-        <MudExpansionPanel Text="@($"Vans ({VanLocations.Count()})")">
-            <MudList T="string">
-                @foreach (var loc in VanLocations)
-                {
-                    <MudListItem>
-                        <div class="d-flex align-center justify-space-between w-100">
-                            <div>
-                                <MudText Typo="Typo.subtitle1"><b>@loc.Name</b></MudText>
-                                <MudText Typo="Typo.body2" Color="Color.Secondary">@loc.Address</MudText>
+    <MudButton Href="/Locations/create" 
+                StartIcon="@Icons.Material.Filled.Add"
+                Variant="Variant.Filled" 
+                Color="Color.Primary"
+                FullWidth="true"
+                Size="Size.Large"
+                Class="mb-5">
+        CREATE NEW LOCATION
+    </MudButton>
+
+    <MudDivider Class="mb-2"></MudDivider>
+
+    @if (AllLocations == null)
+    {
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+    }
+    else
+    {
+        @* Main Hub Section — Store type only, always just the one hub *@
+        <MudExpansionPanels MultiExpansion="true" Class="mb-4">
+            <MudExpansionPanel Text="@($"Main Hub ({HubLocations.Count()})")" Expanded="true">
+                <MudList T="string">
+                    @foreach (var loc in HubLocations)
+                    {
+                        <MudListItem>
+                            <div class="d-flex align-center justify-space-between w-100">
+                                <div>
+                                    <MudText>
+                                        <p><strong>@loc.Name</strong></p>
+                                    </MudText>
+                                    <MudText Color="Color.Secondary">
+                                        <p class="body-2">@loc.Address</p>
+                                    </MudText>
+                                </div>
+                                <div class="d-flex">
+                                    <MudTooltip Text="Edit Location">
+                                        <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                                    Variant="Variant.Filled"
+                                                    Color="Color.Default"
+                                                    Class="mr-2"
+                                                    href="@($"/locations/edit/{loc.Id}")" />
+                                    </MudTooltip>
+                                    <MudTooltip Text="Delete Location">
+                                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                    Variant="Variant.Filled"
+                                                    Color="Color.Default"
+                                                    Class="mr-2"
+                                                    OnClick="@(() => DeleteLocation(loc.Id))" />
+                                    </MudTooltip>
+                                    <MudTooltip Text="View Inventory">
+                                        <MudIconButton Icon="@Icons.Material.Filled.MenuBook"
+                                                    Variant="Variant.Filled"
+                                                    Color="Color.Default"
+                                                    href="/inventory/stock" />
+                                    </MudTooltip>
+                                </div>
                             </div>
-                            <div class="d-flex">
-                                <MudIconButton Icon="@Icons.Material.Filled.Edit"
-                                               Variant="Variant.Filled"
-                                               Color="Color.Default"
-                                               Class="mr-2"
-                                               href="@($"/locations/edit/{loc.Id}")" />
-                                <MudIconButton Icon="@Icons.Material.Filled.Delete"
-                                               Variant="Variant.Filled"
-                                               Color="Color.Error"
-                                               Class="mr-2"
-                                               OnClick="@(() => DeleteLocation(loc.Id))" />
-                                <MudIconButton Icon="@Icons.Material.Filled.MenuBook"
-                                               Variant="Variant.Filled"
-                                               Color="Color.Default"
-                                               href="/inventory/stock" />
+                        </MudListItem>
+                        <MudDivider />
+                    }
+                </MudList>
+            </MudExpansionPanel>
+
+            <MudExpansionPanel Text="@($"Theaters ({TheaterLocations.Count()})")" Expanded="true">
+                <MudList T="string">
+                    @foreach (var loc in TheaterLocations)
+                    {
+                        <MudListItem>
+                            <div class="d-flex align-center justify-space-between w-100">
+                                <div>
+                                    <MudText>
+                                        <p><strong>@loc.Name</strong></p>
+                                    </MudText>
+                                    <MudText Color="Color.Secondary">
+                                        <p class="body-2">@loc.Address</p>
+                                    </MudText>
+                                </div>
+                                <div class="d-flex">
+                                    <MudTooltip Text="Edit Location">
+                                        <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                                    Variant="Variant.Filled"
+                                                    Color="Color.Default"
+                                                    Class="mr-2"
+                                                    href="@($"/locations/edit/{loc.Id}")" />
+                                    </MudTooltip>
+                                    <MudTooltip Text="Delete Location">
+                                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                    Variant="Variant.Filled"
+                                                    Color="Color.Default"
+                                                    Class="mr-2"
+                                                    OnClick="@(() => DeleteLocation(loc.Id))" />
+                                    </MudTooltip>
+                                    <MudTooltip Text="View Inventory">
+                                        <MudIconButton Icon="@Icons.Material.Filled.MenuBook"
+                                                    Variant="Variant.Filled"
+                                                    Color="Color.Default"
+                                                    href="/inventory/stock" />
+                                    </MudTooltip>
+                                </div>
                             </div>
-                        </div>
-                    </MudListItem>
-                    <MudDivider />
-                }
-            </MudList>
-        </MudExpansionPanel>
-    </MudExpansionPanels>
-}
+                        </MudListItem>
+                        <MudDivider />
+                    }
+                </MudList>
+            </MudExpansionPanel>
+
+            <MudExpansionPanel Text="@($"Warehouse ({WarehouseLocations.Count()})")" Expanded="true">
+                <MudList T="string">
+                    @foreach (var loc in WarehouseLocations)
+                    {
+                        <MudListItem>
+                            <div class="d-flex align-center justify-space-between w-100">
+                                <div>
+                                    <MudText>
+                                        <p><strong>@loc.Name</strong></p>
+                                    </MudText>
+                                    <MudText Color="Color.Secondary">
+                                        <p class="body-2">@loc.Address</p>
+                                    </MudText>
+                                </div>
+                                <div class="d-flex">
+                                    <MudTooltip Text="Edit Location">
+                                        <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                                    Variant="Variant.Filled"
+                                                    Color="Color.Default"
+                                                    Class="mr-2"
+                                                    href="@($"/locations/edit/{loc.Id}")" />
+                                    </MudTooltip>
+                                    <MudTooltip Text="Delete Location">
+                                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                    Variant="Variant.Filled"
+                                                    Color="Color.Default"
+                                                    Class="mr-2"
+                                                    OnClick="@(() => DeleteLocation(loc.Id))" />
+                                    </MudTooltip>
+                                    <MudTooltip Text="View Inventory">
+                                        <MudIconButton Icon="@Icons.Material.Filled.MenuBook"
+                                                    Variant="Variant.Filled"
+                                                    Color="Color.Default"
+                                                    href="/inventory/stock" />
+                                    </MudTooltip>
+                                </div>
+                            </div>
+                        </MudListItem>
+                        <MudDivider />
+                    }
+                </MudList>
+            </MudExpansionPanel>
+
+            <MudExpansionPanel Text="@($"Vans ({VanLocations.Count()})")" Expanded="true">
+                <MudList T="string">
+                    @foreach (var loc in VanLocations)
+                    {
+                        <MudListItem>
+                            <div class="d-flex align-center justify-space-between w-100">
+                                <div>
+                                    <MudText>
+                                        <p><strong>@loc.Name</strong></p>
+                                    </MudText>
+                                    <MudText Color="Color.Secondary">
+                                        <p class="body-2">@loc.Address</p>
+                                    </MudText>
+                                </div>
+                                <div class="d-flex">
+                                    <MudTooltip Text="Edit Location">
+                                        <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                                    Variant="Variant.Filled"
+                                                    Color="Color.Default"
+                                                    Class="mr-2"
+                                                    href="@($"/locations/edit/{loc.Id}")" />
+                                    </MudTooltip>
+                                    <MudTooltip Text="Delete Location">
+                                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                    Variant="Variant.Filled"
+                                                    Color="Color.Default"
+                                                    Class="mr-2"
+                                                    OnClick="@(() => DeleteLocation(loc.Id))" />
+                                    </MudTooltip>
+                                    <MudTooltip Text="View Inventory">
+                                        <MudIconButton Icon="@Icons.Material.Filled.MenuBook"
+                                                    Variant="Variant.Filled"
+                                                    Color="Color.Default"
+                                                    href="/inventory/stock" />
+                                    </MudTooltip>
+                                </div>
+                            </div>
+                        </MudListItem>
+                        <MudDivider />
+                    }
+                </MudList>
+            </MudExpansionPanel>
+            
+        </MudExpansionPanels>
+    }
+
+</MudContainer>
+
+
 
 @code {
     private List<Location>? AllLocations;

@@ -116,7 +116,7 @@
 
         LowStock = await context.ProductLocations
             .Include(pl => pl.Product)
-            .Where(pl => pl.Quantity < 5)
+            .Where(pl => pl.Quantity < InventoryAlerts.LowStockThreshold)
             .ToListAsync();
     }
 }
