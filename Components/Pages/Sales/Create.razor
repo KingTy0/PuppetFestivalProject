@@ -5,12 +5,16 @@
 @rendermode InteractiveServer
 @inject IDbContextFactory<ApplicationDbContext> DbFactory
 
-<MudContainer MaxWidth="MaxWidth.Small" Class="mt-10">
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-10">
     @if (SelectedLocationId == 0)
     {
         @* --- STEP 1: LOCATION SELECTION (Matches image_a29a20.png) --- *@
         <div class="text-center">
-            <MudText Typo="Typo.h3" Style="font-family: var(--title-font); font-weight: bold;">Record Sales</MudText>
+
+            <MudText Class="my-5">
+                <h1>Record Sales</h1>
+            </MudText>
+
             <MudText Typo="Typo.body1" Class="mt-4 mb-10" Color="Color.Secondary">
                 Select your location and record sales to automatically keep inventory counts accurate and up to date.
             </MudText>
@@ -42,7 +46,9 @@
             <MudIcon Icon="@Icons.Material.Filled.ArrowBack" Size="Size.Small" Class="mr-1"/> BACK
         </MudLink>
 
-        <MudText Typo="Typo.h4" Style="font-family: var(--title-font); font-weight: bold;">Record Single Sales</MudText>
+        <MudText Class="my-5">
+            <h1>Record Sales</h1>
+        </MudText>
         <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
             Record each sale as it happens to keep inventory count up to date in real time.
         </MudText>
@@ -53,12 +59,12 @@
 
         <div class="d-flex gap-2 mb-6">
             <MudTextField @bind-Value="SearchTerm" Placeholder="Search for an item" 
-                          Variant="Variant.Filled" Adornment="Adornment.End" 
+                          Variant="Variant.Outlined" Adornment="Adornment.End" 
                           AdornmentIcon="@Icons.Material.Filled.Search" Margin="Margin.Dense" />
             <MudMenu EndIcon="@Icons.Material.Filled.FilterList"
          Label="Filter"
          Variant="Variant.Outlined"
-         Size="Size.Small"
+         Size="Size.Large"
          Style="white-space:nowrap"
          AnchorOrigin="Origin.BottomCenter"
          TransformOrigin="Origin.TopCenter">
@@ -119,9 +125,12 @@
             <MudIcon Icon="@Icons.Material.Filled.ArrowBack" Size="Size.Small" Class="mr-1"/> BACK
         </MudLink>
 
-        <MudText Typo="Typo.h4" Style="font-family: var(--title-font); font-weight: bold;">
-            <MudIcon Icon="@Icons.Material.Filled.ListAlt" Class="mr-2"/> Sales Summary
-        </MudText>
+        <div style="display: flex; flex-direction: row; align-items: center; gap: 4px;">
+            <MudIcon Icon="@Icons.Material.Filled.ListAlt" Class="mr-2" />
+            <MudText Class="my-5">
+                <h1>Sales Summary</h1>
+            </MudText>
+        </div>
 
         <MudChip T="string" Icon="@Icons.Material.Filled.TheaterComedy" Color="Color.Dark" Class="mt-4 mb-6">
             @CurrentLocationName

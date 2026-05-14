@@ -7,13 +7,22 @@
 @inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
 
-<MudContainer MaxWidth="MaxWidth.Small" Class="mt-6 mb-10">
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-6 mb-10">
     @* --- TOP NAVIGATION --- *@
-    <MudLink OnClick="HandleCancel" Color="Color.Primary" Underline="Underline.None" Class="d-flex align-center mb-4">
-        <MudIcon Icon="@Icons.Material.Filled.ArrowBack" Size="Size.Small" Class="mr-1"/> BACK
-    </MudLink>
 
-    <MudText Typo="Typo.h3" Style="font-family: var(--title-font); font-weight: bold;">Product Manager</MudText>
+    <MudButton StartIcon="@Icons.Material.Filled.ArrowBack"
+               Variant="Variant.Text"
+               Color="Color.Default"
+               Size="Size.Large"
+               Class="mb-2 text-uppercase"
+               OnClick="HandleCancel">
+        Back
+    </MudButton>
+
+    <MudText Class="my-3">
+        <h1>Product Manager</h1>
+    </MudText>
+
 
     @if (Form is null)
     {
@@ -68,21 +77,28 @@
             @* --- ACTIONS --- *@
             @* --- ACTIONS --- *@
 <MudStack Row="true" Spacing="2" Class="mt-8">
-    <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" 
-               Color="Color.Primary" FullWidth="true" Size="Size.Large" Class="py-3">
-        SAVE CHANGES
+    <MudButton OnClick="HandleCancel" Variant="Variant.Filled" 
+           Color="Color.Default" FullWidth="true" Size="Size.Large">
+    Cancel
     </MudButton>
 
     <MudButton OnClick="DeleteThisVariant" Variant="Variant.Outlined" 
-               Color="Color.Error" FullWidth="true" Size="Size.Large" Class="py-3">
+               Color="Color.Error" FullWidth="true" Size="Size.Large"
+               StartIcon="@Icons.Material.Filled.Delete">
         DELETE VARIANT
     </MudButton>
+
+    <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" 
+               Color="Color.Primary" FullWidth="true" Size="Size.Large">
+        SAVE CHANGES
+    </MudButton>
+
+    
+
+    
 </MudStack>
 
-<MudButton OnClick="HandleCancel" Variant="Variant.Text" 
-           Color="Color.Secondary" FullWidth="true" Class="mt-2">
-    Cancel
-</MudButton>
+
         </EditForm>
     }
 </MudContainer>

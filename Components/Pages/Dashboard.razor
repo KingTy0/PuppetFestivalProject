@@ -11,9 +11,14 @@
 
 <AuthorizeView>
     <Authorized>
-        <MudContainer MaxWidth="MaxWidth.Large" Class="mt-6">
-            <MudText Typo="Typo.h4">Hello, @UserName!</MudText>
-            <MudText Typo="Typo.subtitle1" Color="Color.Secondary" Class="mb-6">Welcome to the Puppet Festival Merchandise Management System.</MudText>
+        <MudContainer MaxWidth="MaxWidth.Medium">
+
+            <MudText Class="mt-5 mb-2">
+                <h3>Hello, @UserName!</h3>
+            </MudText>
+            <MudText Color="Color.Secondary" Class="mb-6">
+                <p class="body-1">Welcome to Backstage!</p>
+            </MudText>
 
             @* ── Quick Actions moved from Home ── *@
             <MudPaper Elevation="1" Class="pa-4 mb-6">

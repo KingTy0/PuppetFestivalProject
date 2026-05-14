@@ -10,13 +10,18 @@
 
 <PageTitle>Pack a Box</PageTitle>
 
-<MudContainer MaxWidth="MaxWidth.Small" Class="mt-6">
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-6">
 
     @* --- STEP 1 --- *@
     @if (currentStep == 1)
     {
-        <MudText Typo="Typo.h4" Class="mb-2">Pack a Box</MudText>
-        <MudText Typo="Typo.body2" Class="mb-6">Create a box to deliver merchandise to a different location.</MudText>
+        <MudText Class="my-5">
+                <h1>Pack a Box</h1>
+            </MudText>
+
+            <MudText Color="Color.Secondary" Class="mb-5">
+                <p class="body-1">Create a box to deliver merchandise to a different location.</p>
+            </MudText>
 
         <MudStack Spacing="4">
             <MudTextField Label="Box Title" @bind-Value="Form.BoxTitle" Variant="Variant.Outlined" Placeholder="e.g. Box #1" />

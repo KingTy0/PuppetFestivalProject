@@ -19,29 +19,7 @@
     .border-bottom { border-bottom: 1px solid #e0e0e0; }
 </style>
 
-<MudStack Spacing="4" Class="pa-4">
-
-    @* ── Page Header ── *@
-    <div class="d-flex align-center justify-space-between flex-wrap gap-2">
-        <MudText Typo="Typo.h4" Class="inventory-header">Inventory</MudText>
-        <MudSwitch @bind-Value="_editMode"
-                   Color="Color.Primary"
-                   Label="Edit Mode"
-                   LabelPosition="LabelPosition.Start" />
-    </div>
-
-    @* ── Location Filter ── *@
-    <MudSelect T="Location"
-               Label="Select a location"
-               Variant="Variant.Outlined"
-               @bind-Value="SelectedLocation"
-               AnchorOrigin="Origin.BottomCenter"
-               TransformOrigin="Origin.TopCenter">
-        @foreach (var loc in AllLocations)
-        {
-            <MudSelectItem Value="@loc">@loc.Name</MudSelectItem>
-        }
-    </MudSelect>
+<MudContainer MaxWidth="MaxWidth.Medium">
 
     @* ── Content Area ── *@
     @if (SelectedLocation == null)
@@ -62,64 +40,144 @@
                 <b style="color:#212121;">@grouped.Count</b> products &nbsp;·&nbsp;
                 <b style="color:#212121;">@totalUnits</b> total units
             </MudText>
-            @if (lowCount > 0)
-            {
-                <MudChip T="string" Size="Size.Small" Color="Color.Error" Variant="Variant.Outlined">
-                    @lowCount low stock
-                </MudChip>
-            }
+            <MudSwitch @bind-Value="_editMode"
+                    Color="Color.Primary"
+                    Label="Edit Mode"
+                    LabelPosition="LabelPosition.Start" />
         </div>
 
-        @if (!grouped.Any())
+        @* ── Location Filter ── *@
+        <MudSelect T="Location"
+                Label="Select a location"
+                Variant="Variant.Outlined"
+                @bind-Value="SelectedLocation"
+                AnchorOrigin="Origin.BottomCenter"
+                TransformOrigin="Origin.TopCenter">
+            @foreach (var loc in AllLocations)
+            {
+                <MudSelectItem Value="@loc">@loc.Name</MudSelectItem>
+            }
+        </MudSelect>
+
+        @* ── Content Area ── *@
+        @if (SelectedLocation == null)
         {
-            <MudPaper Class="pa-8 d-flex flex-column align-center justify-center"
-                      Elevation="0"
-                      Style="border: 1px dashed #ddd; border-radius: 10px;">
-                <MudIcon Icon="@Icons.Material.Outlined.Inventory2"
-                         Style="font-size:2.5rem; color:#bdbdbd; margin-bottom:8px;" />
-                <MudText Typo="Typo.h6" Style="color:#616161;">No Inventory</MudText>
-                <MudText Typo="Typo.body2" Color="Color.Secondary">
-                    No products exist yet.
-                </MudText>
-            </MudPaper>
+            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+                Select a location to view inventory.
+            </MudAlert>
         }
         else
         {
-            <MudExpansionPanels MultiExpansion="true" Elevation="0">
-                @foreach (var group in grouped)
-                {
-                    <MudExpansionPanel Class="stock-card mb-2" Elevation="0">
-                        <TitleContent>
-                            <div class="d-flex align-center gap-3 w-100 pr-2">
-                                @* Parent image *@
-                                <MudAvatar Square="true" Class="stock-avatar">
-                                    @if (!string.IsNullOrEmpty(group.ImageFileName))
-                                    {
-                                        <MudImage Src="@($"/images/products/{group.ImageFileName}")" />
-                                    }
-                                    else
-                                    {
-                                        <MudIcon Icon="@Icons.Material.Filled.Image" Style="color:#bdbdbd;" />
-                                    }
-                                </MudAvatar>
+            var grouped = GetGroupedStock(SelectedLocation.Id);
+            var totalUnits = grouped.Sum(g => g.Variants.Sum(v => v.Quantity));
+            var lowCount = grouped.Sum(g => g.Variants.Count(v => v.Quantity < 10));
 
-                                @* Parent name and total *@
-                                <div class="flex-grow-1" style="min-width:0;">
-                                    <MudText Typo="Typo.body1"
-                                             Style="font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                                        @group.ParentName
-                                    </MudText>
-                                    <MudText Typo="Typo.caption" Style="color:#757575;">
-                                        @group.Variants.Count variant(s) · @group.Variants.Sum(v => v.Quantity) total
-                                    </MudText>
+            @* ── Summary Bar ── *@
+            <div class="d-flex align-center gap-3 flex-wrap">
+                <MudText Typo="Typo.body2" Style="color:#757575;">
+                    <b style="color:#212121;">@grouped.Count</b> products &nbsp;·&nbsp;
+                    <b style="color:#212121;">@totalUnits</b> total units
+                </MudText>
+                @if (lowCount > 0)
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Error" Variant="Variant.Outlined">
+                        @lowCount low stock
+                    </MudChip>
+                }
+            </div>
+
+            @if (!grouped.Any())
+            {
+                <MudPaper Class="pa-8 d-flex flex-column align-center justify-center"
+                        Elevation="0"
+                        Style="border: 1px dashed #ddd; border-radius: 10px;">
+                    <MudIcon Icon="@Icons.Material.Outlined.Inventory2"
+                            Style="font-size:2.5rem; color:#bdbdbd; margin-bottom:8px;" />
+                    <MudText Typo="Typo.h6" Style="color:#616161;">No Inventory</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        No products exist yet.
+                    </MudText>
+                </MudPaper>
+            }
+            else
+            {
+                <MudExpansionPanels MultiExpansion="true" Elevation="0">
+                    @foreach (var group in grouped)
+                    {
+                        <MudExpansionPanel Class="stock-card mb-2" Elevation="0">
+                            <TitleContent>
+                                <div class="d-flex align-center gap-3 w-100 pr-2">
+                                    @* Parent image *@
+                                    <MudAvatar Square="true" Class="stock-avatar">
+                                        @if (!string.IsNullOrEmpty(group.ImageFileName))
+                                        {
+                                            <MudImage Src="@($"/images/products/{group.ImageFileName}")" />
+                                        }
+                                        else
+                                        {
+                                            <MudIcon Icon="@Icons.Material.Filled.Image" Style="color:#bdbdbd;" />
+                                        }
+                                    </MudAvatar>
+
+                                    @* Parent name and total *@
+                                    <div class="flex-grow-1" style="min-width:0;">
+                                        <MudText Typo="Typo.body1"
+                                                Style="font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                                            @group.ParentName
+                                        </MudText>
+                                        <MudText Typo="Typo.caption" Style="color:#757575;">
+                                            @group.Variants.Count variant(s) · @group.Variants.Sum(v => v.Quantity) total
+                                        </MudText>
+                                    </div>
+
+                                    @* Low stock badge if any variant is low *@
+                                    @if (group.Variants.Any(v => v.Quantity < 10))
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Error" Variant="Variant.Outlined">
+                                            Low
+                                        </MudChip>
+                                    }
                                 </div>
+                            </TitleContent>
+
+                            <ChildContent>
+                                <MudDivider />
+                                @* Column headers *@
+                                <div class="pa-2 d-flex justify-space-between px-4" style="background:#fafafa;">
+                                    <MudText Typo="Typo.caption"><b>Variant</b></MudText>
+                                    <MudText Typo="Typo.caption"><b>Quantity</b></MudText>
+                                </div>
+                                <MudDivider />
 
                                 @* Low stock badge if any variant is low *@
                                 @if (group.Variants.Any(v => InventoryAlerts.IsLowStock(v.Quantity)))
                                 {
-                                    <MudChip T="string" Size="Size.Small" Color="Color.Error" Variant="Variant.Outlined">
-                                        Low
-                                    </MudChip>
+                                    <div class="d-flex align-center justify-space-between pa-3 border-bottom">
+                                        <MudText Style="width: 90%;">
+                                            <p class="body-2">@variant.VariantName</p>
+                                        </MudText>
+
+                                        @if (_editMode)
+                                        {
+                                            <MudNumericField T="int"
+                                                            Value="@variant.Quantity"
+                                                            ValueChanged="@(val => OnQuantityChanged(variant.StockRecord, val))"
+                                                            Variant="Variant.Outlined"
+                                                            Margin="Margin.Dense"
+                                                            Class="edit-qty-field"
+                                                            HideSpinButtons="true" 
+                                                            Style="max-width: 100px;" />
+                                        }
+                                        else
+                                        {
+                                            <MudChip T="int"
+                                                    Variant="Variant.Outlined"
+                                                    Size="Size.Small"
+                                                    Class="@(variant.Quantity < 10 ? "qty-chip-low" : "qty-chip-ok")">
+                                                @variant.Quantity
+                                            </MudChip>
+                                        }
+                                    </div>
                                 }
                             </div>
                         </TitleContent>
@@ -164,8 +222,11 @@
                 }
             </MudExpansionPanels>
         }
-    }
-</MudStack>
+    </MudStack>
+
+</MudContainer>
+
+
 
 @code {
     private List<ProductLocation> StockData = new();

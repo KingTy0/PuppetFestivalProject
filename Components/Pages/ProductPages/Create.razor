@@ -11,20 +11,19 @@
 
 <PageTitle>@(parentId.HasValue ? "Create Variant" : "Create Product")</PageTitle>
 
-<MudContainer MaxWidth="MaxWidth.Small" Class="pa-4">
+<MudContainer MaxWidth="MaxWidth.Medium" Class="pa-4">
 
     <MudButton StartIcon="@Icons.Material.Filled.ArrowBack"
                Variant="Variant.Text"
                Color="Color.Default"
-               Size="Size.Small"
+               Size="Size.Large"
                Class="mb-2 text-uppercase"
-               Style="font-size: 0.7rem; letter-spacing: 0.1em; font-weight: 600;"
                Href="/products">
         Back
     </MudButton>
 
-    <MudText Typo="Typo.h4" Style="font-weight: 800; margin-bottom: 24px;">
-        @(parentId.HasValue ? "Create Variant" : "Product Manager")
+    <MudText Class="my-3">
+        <h1>@(parentId.HasValue ? "Create Variant" : "Product Manager")</h1>
     </MudText>
 
     <EditForm Model="Form" OnValidSubmit="AddProduct" FormName="createProduct">
@@ -161,10 +160,9 @@
 
         <MudDivider Class="mb-4" />
         <MudStack Row="true" Justify="Justify.SpaceBetween">
-            <MudButton Variant="Variant.Outlined"
+            <MudButton Variant="Variant.Filled"
                        Color="Color.Default"
                        Size="Size.Large"
-                       Style="text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.1em; min-width: 120px;"
                        Href="/products">
                 Cancel
             </MudButton>
@@ -173,9 +171,8 @@
                        Variant="Variant.Filled"
                        Color="Color.Primary"
                        Size="Size.Large"
-                       Style="text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.1em; min-width: 120px;"
                        Disabled="@isUploading"
-                       EndIcon="@Icons.Material.Filled.Check">
+                       StartIcon="@Icons.Material.Filled.Check">
                 Confirm
             </MudButton>
         </MudStack>
